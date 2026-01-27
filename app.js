@@ -364,57 +364,118 @@ const App = {
     const info = calcDailyCalories();
     const weights = JSON.parse(localStorage.getItem("weight_log") || "[]");
     const latest = weights.length ? weights[weights.length - 1] : null;
-    const first = weights.length ? weights[0] : null;
-    const lost = first && latest ? Math.round((first.kg - latest.kg) * 10) / 10 : 0;
+    const currentKg = latest ? latest.kg : info.profile.currentKg;
+    const totalToLose = info.profile.currentKg - info.profile.goalKg;
+    const lost = Math.round((info.profile.currentKg - currentKg) * 10) / 10;
+    const remaining = Math.round((currentKg - info.profile.goalKg) * 10) / 10;
+    const goalPct = totalToLose > 0 ? Math.min(100, Math.round((lost / totalToLose) * 100)) : 0;
 
-    let html = '<div class="section"><h2>Log Weight</h2>' +
+    let html = "";
+
+    // --- Goal progress ring ---
+    const ringSize = 140;
+    const ringStroke = 10;
+    const ringRadius = (ringSize - ringStroke) / 2;
+    const ringCircum = 2 * Math.PI * ringRadius;
+    const ringOffset = ringCircum - (goalPct / 100) * ringCircum;
+    const ringColor = goalPct >= 100 ? "var(--primary)" : "var(--primary-light)";
+
+    html += '<div class="section goal-section"><h2>Goal Progress</h2>' +
+      '<div class="goal-row">' +
+      '<div class="goal-ring">' +
+      '<svg width="' + ringSize + '" height="' + ringSize + '" viewBox="0 0 ' + ringSize + " " + ringSize + '">' +
+      '<circle cx="' + ringSize/2 + '" cy="' + ringSize/2 + '" r="' + ringRadius + '" fill="none" stroke="var(--border)" stroke-width="' + ringStroke + '"/>' +
+      '<circle cx="' + ringSize/2 + '" cy="' + ringSize/2 + '" r="' + ringRadius + '" fill="none" stroke="' + ringColor + '" stroke-width="' + ringStroke + '"' +
+      ' stroke-dasharray="' + ringCircum + '" stroke-dashoffset="' + ringOffset + '" stroke-linecap="round" transform="rotate(-90 ' + ringSize/2 + " " + ringSize/2 + ')"/>' +
+      '</svg>' +
+      '<div class="goal-ring-text"><span class="goal-pct">' + goalPct + '%</span><span class="goal-sub">complete</span></div></div>' +
+      '<div class="goal-stats">' +
+      '<div class="goal-stat"><span class="goal-num">' + currentKg + '</span><span class="goal-label">Current kg</span></div>' +
+      '<div class="goal-stat"><span class="goal-num">' + info.profile.goalKg + '</span><span class="goal-label">Goal kg</span></div>' +
+      '<div class="goal-stat"><span class="goal-num ' + (lost > 0 ? "good" : "") + '">' + (lost > 0 ? "-" : "") + Math.abs(lost) + '</span><span class="goal-label">Lost kg</span></div>' +
+      '<div class="goal-stat"><span class="goal-num">' + Math.max(0, remaining) + '</span><span class="goal-label">To go</span></div>' +
+      "</div></div></div>";
+
+    // --- Weight input ---
+    html += '<div class="section"><h2>Log Today\'s Weight</h2>' +
       '<div class="input-row">' +
-      '<input type="number" id="weight-in" placeholder="Weight (kg)" step="0.1" min="30" max="200">' +
-      '<button class="btn btn-primary" id="log-w-btn">Log</button></div>' +
-      '<div class="stats">' +
-      '<div class="stat"><span class="stat-label">Start</span><span class="stat-val">' + info.profile.currentKg + ' kg</span></div>' +
-      '<div class="stat"><span class="stat-label">Goal</span><span class="stat-val">' + info.profile.goalKg + ' kg</span></div>' +
-      '<div class="stat"><span class="stat-label">Current</span><span class="stat-val">' + (latest ? latest.kg : info.profile.currentKg) + ' kg</span></div>' +
-      '<div class="stat"><span class="stat-label">Lost</span><span class="stat-val">' + Math.abs(lost) + ' kg</span></div>' +
-      "</div>";
-
-    if (weights.length) {
-      html += '<ul class="history-list">';
-      weights.slice().reverse().slice(0, 10).forEach(w => {
-        html += "<li>" + w.date + ": <strong>" + w.kg + " kg</strong></li>";
-      });
-      html += "</ul>";
+      '<input type="number" id="weight-in" placeholder="e.g. 76.5" step="0.1" min="30" max="200">' +
+      '<button class="btn btn-primary" id="log-w-btn">Log</button></div>';
+    if (latest) {
+      html += '<p class="last-logged">Last: ' + latest.kg + " kg on " + latest.date + "</p>";
     }
     html += "</div>";
 
-    // Last 7 days calories
-    html += '<div class="section"><h2>Last 7 Days - Calories</h2><div class="cal-bars">';
-    for (let i = 6; i >= 0; i--) {
+    // --- Weight chart (canvas) ---
+    html += '<div class="section"><h2>Weight Over Time</h2>';
+    if (weights.length >= 2) {
+      html += '<canvas id="weight-chart" width="460" height="200"></canvas>';
+    } else {
+      html += '<p class="empty-sm">Log at least 2 weights to see the chart.</p>';
+    }
+    html += "</div>";
+
+    // --- Calorie history (14 days) ---
+    html += '<div class="section"><h2>Calorie History</h2><div class="cal-bars">';
+    for (let i = 13; i >= 0; i--) {
       const d = new Date(); d.setDate(d.getDate() - i);
       const key = d.toISOString().split("T")[0];
       const eaten = this.getEaten(key);
       const cals = Object.values(eaten).reduce((s, m) => s + m.calories, 0);
-      const pct = info.target > 0 ? Math.min(100, (cals / info.target) * 100) : 0;
-      html += '<div class="cal-row"><span class="label">' + key.slice(5) + '</span>' +
-        '<div class="track"><div class="fill' + (cals > info.target ? " over" : "") +
-        '" style="width:' + pct + '%"></div></div>' +
-        '<span class="val">' + (cals || "-") + "</span></div>";
+      if (cals === 0 && i > 6) continue; // skip empty old days
+      const pct = info.target > 0 ? Math.min(120, (cals / info.target) * 100) : 0;
+      const over = cals > info.target;
+      const dayName = d.toLocaleDateString("en-US", { weekday: "short" });
+      html += '<div class="cal-row"><span class="label">' + dayName + '</span>' +
+        '<div class="track"><div class="fill ' + (over ? "over" : "good") +
+        '" style="width:' + Math.min(100, pct) + '%"></div></div>' +
+        '<span class="val ' + (cals > 0 ? (over ? "text-red" : "text-green") : "") + '">' + (cals || "-") + "</span></div>";
     }
     html += "</div></div>";
 
+    // --- Meals eaten log ---
+    html += '<div class="section"><h2>Recent Meals Eaten</h2>';
+    const mealDays = [];
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(); d.setDate(d.getDate() - i);
+      const key = d.toISOString().split("T")[0];
+      const eaten = this.getEaten(key);
+      const meals = Object.entries(eaten);
+      if (meals.length) mealDays.push({ date: key, meals });
+    }
+    if (mealDays.length) {
+      mealDays.forEach(day => {
+        const dayCals = day.meals.reduce((s, m) => s + m[1].calories, 0);
+        const over = dayCals > info.target;
+        const dayLabel = new Date(day.date + "T12:00:00").toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
+        html += '<div class="meal-log-day">' +
+          '<div class="meal-log-header"><span>' + dayLabel + '</span>' +
+          '<span class="' + (over ? "text-red" : "text-green") + '">' + dayCals + ' / ' + info.target + ' cal</span></div>';
+        day.meals.forEach(([slot, m]) => {
+          html += '<div class="meal-log-item"><span class="meal-log-slot">' + slot + '</span>' +
+            '<span>' + m.name + '</span><span class="meal-log-cal">' + m.calories + '</span></div>';
+        });
+        html += "</div>";
+      });
+    } else {
+      html += '<p class="empty-sm">No meals logged yet. Mark meals as eaten in the Meals tab.</p>';
+    }
+    html += "</div>";
+
+    // --- Your numbers ---
     if (info.warning) {
       html += '<div class="warning">' + info.warning + "</div>";
     }
-
     html += '<div class="section"><h2>Your Numbers</h2><div class="info-grid">' +
       "<div>BMR: " + info.bmr + " cal</div>" +
       "<div>TDEE: " + info.tdee + " cal</div>" +
-      "<div>Target: " + info.target + " cal</div>" +
+      "<div>Daily Target: " + info.target + " cal</div>" +
       "<div>Rate: " + info.kgPerWeek + " kg/week</div>" +
       "</div></div>";
 
     el.innerHTML = html;
 
+    // --- Event: log weight ---
     document.getElementById("log-w-btn").addEventListener("click", () => {
       const kg = parseFloat(document.getElementById("weight-in").value);
       if (!kg || kg < 30 || kg > 200) return;
@@ -424,6 +485,88 @@ const App = {
       weights.sort((a, b) => a.date.localeCompare(b.date));
       localStorage.setItem("weight_log", JSON.stringify(weights));
       this.renderProgress();
+    });
+
+    // --- Draw weight chart ---
+    if (weights.length >= 2) {
+      this.drawWeightChart(weights, info.profile.goalKg);
+    }
+  },
+
+  drawWeightChart(weights, goalKg) {
+    const canvas = document.getElementById("weight-chart");
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    const dpr = window.devicePixelRatio || 1;
+    const w = canvas.clientWidth;
+    const h = canvas.clientHeight;
+    canvas.width = w * dpr;
+    canvas.height = h * dpr;
+    ctx.scale(dpr, dpr);
+
+    const pad = { top: 20, right: 15, bottom: 30, left: 40 };
+    const cw = w - pad.left - pad.right;
+    const ch = h - pad.top - pad.bottom;
+
+    // Data range
+    const allKg = weights.map(w => w.kg).concat([goalKg]);
+    const minKg = Math.floor(Math.min(...allKg) - 1);
+    const maxKg = Math.ceil(Math.max(...allKg) + 1);
+    const kgRange = maxKg - minKg;
+
+    const toX = (i) => pad.left + (i / (weights.length - 1)) * cw;
+    const toY = (kg) => pad.top + ((maxKg - kg) / kgRange) * ch;
+
+    // Grid lines
+    ctx.strokeStyle = "#e5e5e5";
+    ctx.lineWidth = 1;
+    ctx.font = "11px -apple-system, sans-serif";
+    ctx.fillStyle = "#6b7280";
+    ctx.textAlign = "right";
+    const step = kgRange <= 6 ? 1 : kgRange <= 15 ? 2 : 5;
+    for (let kg = minKg; kg <= maxKg; kg += step) {
+      const y = toY(kg);
+      ctx.beginPath(); ctx.moveTo(pad.left, y); ctx.lineTo(w - pad.right, y); ctx.stroke();
+      ctx.fillText(kg + "", pad.left - 6, y + 4);
+    }
+
+    // X-axis labels (show first, last, and some middle dates)
+    ctx.textAlign = "center";
+    const labelCount = Math.min(weights.length, 5);
+    for (let i = 0; i < labelCount; i++) {
+      const idx = Math.round(i * (weights.length - 1) / (labelCount - 1));
+      const x = toX(idx);
+      ctx.fillText(weights[idx].date.slice(5), x, h - 6);
+    }
+
+    // Goal line
+    ctx.strokeStyle = "#e63946";
+    ctx.lineWidth = 1;
+    ctx.setLineDash([6, 4]);
+    const goalY = toY(goalKg);
+    ctx.beginPath(); ctx.moveTo(pad.left, goalY); ctx.lineTo(w - pad.right, goalY); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = "#e63946";
+    ctx.textAlign = "left";
+    ctx.fillText("Goal: " + goalKg, w - pad.right - 50, goalY - 6);
+
+    // Weight line
+    ctx.strokeStyle = "#2d6a4f";
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    weights.forEach((pt, i) => {
+      const x = toX(i);
+      const y = toY(pt.kg);
+      if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    });
+    ctx.stroke();
+
+    // Dots
+    ctx.fillStyle = "#2d6a4f";
+    weights.forEach((pt, i) => {
+      const x = toX(i);
+      const y = toY(pt.kg);
+      ctx.beginPath(); ctx.arc(x, y, 4, 0, Math.PI * 2); ctx.fill();
     });
   },
 
