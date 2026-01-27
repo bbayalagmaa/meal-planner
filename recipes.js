@@ -53,7 +53,7 @@ const RECIPES = [
     instructions: "Saute onion and mushrooms. Add spinach until wilted. Push aside, scramble eggs, mix together."
   },
 
-  // SNACKS (2)
+  // SNACKS (4)
   {
     id: 9, name: "Apple & Peanut Butter", category: "snack",
     calories: 200, protein: 6, carbs: 25, fat: 10, cookTime: 2,
@@ -65,6 +65,18 @@ const RECIPES = [
     calories: 140, protein: 12, carbs: 1, fat: 10, cookTime: 10,
     ingredients: ["eggs 2"],
     instructions: "Boil eggs 8-10 min for hard-boiled. Cool in cold water."
+  },
+  {
+    id: 11, name: "Carrot Sticks & Hummus", category: "snack",
+    calories: 150, protein: 5, carbs: 18, fat: 7, cookTime: 2,
+    ingredients: ["carrots 2", "hummus 50g"],
+    instructions: "Peel and cut carrots into sticks. Serve with hummus for dipping."
+  },
+  {
+    id: 12, name: "Cottage Cheese & Berries", category: "snack",
+    calories: 160, protein: 14, carbs: 15, fat: 4, cookTime: 2,
+    ingredients: ["cottage cheese 150g", "mixed berries 50g"],
+    instructions: "Scoop cottage cheese into a bowl. Top with fresh berries."
   }
 ];
 

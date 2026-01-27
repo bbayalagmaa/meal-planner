@@ -61,7 +61,7 @@ const App = {
     if (!plan) {
       el.innerHTML = '<div class="generate-row">' +
         "<p>No meals planned for this day</p>" +
-        '<button class="btn btn-primary" id="gen-btn">Generate Meal Plan</button></div>';
+        '<button class="btn btn-primary" id="gen-btn">Generate Today\'s Plan</button></div>';
       document.getElementById("gen-btn").addEventListener("click", () => {
         this.savePlan(this.date, this.generatePlan(info.target));
         this.renderMeals();
@@ -71,25 +71,40 @@ const App = {
 
     const eaten = this.getEaten(this.date);
     const eatenCals = Object.values(eaten).reduce((s, m) => s + m.calories, 0);
+
+    // Calculate plan total calories
+    const slots = ["breakfast", "lunch", "dinner", "snack1", "snack2"];
+    const planCals = slots.reduce((s, slot) => s + (plan[slot] ? plan[slot].calories : 0), 0);
+    const planProtein = slots.reduce((s, slot) => s + (plan[slot] ? plan[slot].protein : 0), 0);
+    const planCarbs = slots.reduce((s, slot) => s + (plan[slot] ? plan[slot].carbs : 0), 0);
+    const planFat = slots.reduce((s, slot) => s + (plan[slot] ? plan[slot].fat : 0), 0);
     const pct = Math.min(100, (eatenCals / info.target) * 100);
+    const underOver = planCals <= info.target
+      ? (info.target - planCals) + " cal under budget"
+      : (planCals - info.target) + " cal over budget";
 
-    let html = '<div class="calorie-bar"><div class="row">' +
-      "<span>Target: <strong>" + info.target + " cal</strong></span>" +
-      "<span>Eaten: <strong>" + eatenCals + " cal</strong></span></div>" +
+    let html = '<div class="calorie-bar">' +
+      '<div class="row"><span>Target: <strong>' + info.target + ' cal</strong></span>' +
+      '<span>Plan: <strong>' + planCals + ' cal</strong></span></div>' +
+      '<div class="row"><span>Eaten: <strong>' + eatenCals + ' cal</strong></span>' +
+      '<span class="' + (planCals <= info.target ? "under" : "over") + '">' + underOver + '</span></div>' +
       '<div class="bar-track"><div class="bar-fill' + (pct > 100 ? " over" : "") +
-      '" style="width:' + pct + '%"></div></div></div>';
+      '" style="width:' + pct + '%"></div></div>' +
+      '<div class="macro-row">P: ' + planProtein + 'g | C: ' + planCarbs + 'g | F: ' + planFat + 'g</div></div>';
 
-    ["breakfast", "lunch", "dinner", "snack"].forEach(slot => {
+    const slotLabels = { breakfast: "Breakfast", lunch: "Lunch", dinner: "Dinner", snack1: "Snack 1", snack2: "Snack 2" };
+
+    slots.forEach(slot => {
       const meal = plan[slot];
       if (!meal) return;
       const isEaten = !!eaten[slot];
       html += '<div class="meal-card' + (isEaten ? " eaten" : "") + '">' +
-        '<span class="slot">' + slot + '</span><span class="cals">' + meal.calories + ' cal</span>' +
+        '<span class="slot">' + slotLabels[slot] + '</span><span class="cals">' + meal.calories + ' cal</span>' +
         "<h3>" + meal.name + "</h3>" +
-        '<div class="meta">P: ' + meal.protein + "g | C: " + meal.carbs + "g | F: " + meal.fat + "g | " + meal.cookTime + " min</div>" +
-        "<details><summary>Ingredients & Instructions</summary>" +
-        "<ul>" + meal.ingredients.map(i => "<li>" + i + "</li>").join("") + "</ul>" +
-        "<p>" + meal.instructions + "</p></details>" +
+        '<div class="meta">Cook time: ' + meal.cookTime + ' min | P: ' + meal.protein + "g | C: " + meal.carbs + "g | F: " + meal.fat + "g</div>" +
+        '<div class="ingredients"><strong>Ingredients:</strong><ul>' +
+        meal.ingredients.map(i => "<li>" + i + "</li>").join("") + "</ul></div>" +
+        '<div class="steps"><strong>Steps:</strong><p>' + meal.instructions + "</p></div>" +
         '<div class="meal-actions">' +
         '<button class="btn btn-sm ' + (isEaten ? "btn-eaten" : "btn-outline") +
         '" data-slot="' + slot + '" data-action="eat">' + (isEaten ? "Eaten" : "Mark Eaten") + "</button>" +
@@ -114,8 +129,12 @@ const App = {
     el.querySelectorAll("[data-action=swap]").forEach(btn => {
       btn.addEventListener("click", () => {
         const slot = btn.dataset.slot;
-        const cat = slot === "snack" ? "snack" : slot;
-        const opts = getRecipesByCategory(cat).filter(r => r.id !== plan[slot].id);
+        const cat = slot.startsWith("snack") ? "snack" : slot;
+        // Exclude current recipe and the other snack's recipe
+        const exclude = [plan[slot]?.id];
+        if (slot === "snack1" && plan.snack2) exclude.push(plan.snack2.id);
+        if (slot === "snack2" && plan.snack1) exclude.push(plan.snack1.id);
+        const opts = getRecipesByCategory(cat).filter(r => !exclude.includes(r.id));
         if (opts.length) {
           plan[slot] = opts[Math.floor(Math.random() * opts.length)];
           this.savePlan(this.date, plan);
@@ -135,16 +154,33 @@ const App = {
 
   generatePlan(calorieTarget) {
     const pick = arr => arr[Math.floor(Math.random() * arr.length)];
-    const b = pick(getRecipesByCategory("breakfast"));
-    const l = pick(getRecipesByCategory("lunch"));
-    const d = pick(getRecipesByCategory("dinner"));
-    const plan = { breakfast: b, lunch: l, dinner: d };
-    const remaining = calorieTarget - b.calories - l.calories - d.calories;
-    if (remaining >= 100) {
-      const snacks = getRecipesByCategory("snack").filter(s => s.calories <= remaining);
-      if (snacks.length) plan.snack = pick(snacks);
+    // Try up to 10 times to find a combo that fits the budget
+    let best = null;
+    for (let attempt = 0; attempt < 10; attempt++) {
+      const b = pick(getRecipesByCategory("breakfast"));
+      const l = pick(getRecipesByCategory("lunch"));
+      const d = pick(getRecipesByCategory("dinner"));
+      const plan = { breakfast: b, lunch: l, dinner: d };
+      let total = b.calories + l.calories + d.calories;
+
+      // Pick 2 snacks
+      const allSnacks = getRecipesByCategory("snack");
+      const s1 = pick(allSnacks);
+      plan.snack1 = s1;
+      total += s1.calories;
+      const s2Options = allSnacks.filter(s => s.id !== s1.id);
+      if (s2Options.length) {
+        const s2 = pick(s2Options);
+        plan.snack2 = s2;
+        total += s2.calories;
+      }
+
+      if (!best || Math.abs(total - calorieTarget) < Math.abs(best.total - calorieTarget)) {
+        best = { plan, total };
+      }
+      if (total <= calorieTarget) break;
     }
-    return plan;
+    return best.plan;
   },
 
   // === GROCERY LIST ===

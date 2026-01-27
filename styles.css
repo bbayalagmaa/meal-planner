@@ -147,12 +147,26 @@ body {
 }
 .meal-card h3 { font-size: 15px; margin: 4px 0; }
 .meal-card .meta { font-size: 12px; color: var(--muted); margin-bottom: 8px; }
-.meal-card details { margin-bottom: 8px; }
-.meal-card summary { font-size: 13px; color: var(--primary); cursor: pointer; }
-.meal-card ul { padding-left: 18px; font-size: 13px; margin: 6px 0; }
+.meal-card .ingredients { margin-bottom: 8px; }
+.meal-card .ingredients strong, .meal-card .steps strong { font-size: 12px; color: var(--primary); }
+.meal-card ul { padding-left: 18px; font-size: 13px; margin: 4px 0 0; }
 .meal-card li { margin-bottom: 2px; }
-.meal-card details > p { font-size: 13px; color: var(--muted); margin-top: 4px; }
+.meal-card .steps { margin-bottom: 10px; }
+.meal-card .steps p { font-size: 13px; color: var(--muted); margin-top: 4px; line-height: 1.5; }
 .meal-actions { display: flex; gap: 8px; }
+.macro-row { font-size: 12px; color: var(--muted); margin-top: 6px; }
+.calorie-bar .under { color: var(--primary); font-weight: 600; font-size: 12px; }
+.calorie-bar .over { color: var(--danger); font-weight: 600; font-size: 12px; }
+.day-total {
+  background: var(--primary);
+  color: white;
+  text-align: center;
+  padding: 12px;
+  border-radius: var(--radius);
+  margin-bottom: 14px;
+  font-size: 15px;
+  font-weight: 600;
+}
 
 .generate-row {
   text-align: center;
