@@ -184,48 +184,178 @@ const App = {
   },
 
   // === GROCERY LIST ===
+
+  // Ingredient category lookup
+  classifyIngredient(name) {
+    const n = name.toLowerCase();
+    // Protein
+    if (/chicken|beef|salmon|tuna|eggs?\b|turkey/.test(n)) return "Protein";
+    // Dairy
+    if (/milk|butter|yogurt|cottage cheese|feta|cheese/.test(n)) return "Dairy";
+    // Produce
+    if (/banana|apple|lemon|berries|broccoli|lettuce|tomato|cucumber|carrot|onion|potato|garlic|zucchini|bell pepper|spinach|mushroom|celery/.test(n)) return "Produce";
+    // Everything else
+    return "Pantry";
+  },
+
+  // Extract base ingredient name for dedup (strip quantities)
+  baseName(ingredient) {
+    return ingredient.replace(/\s+\d[\d/.*]*\s*(g|kg|ml|l|tsp|tbsp|cloves?|slice|scoop)?\s*$/i, "").trim().toLowerCase();
+  },
+
+  // Build categorized, deduplicated list from a plan
+  buildGroceryList(plan) {
+    const map = {};
+    const slots = ["breakfast", "lunch", "dinner", "snack1", "snack2"];
+    slots.forEach(slot => {
+      const meal = plan[slot];
+      if (!meal) return;
+      meal.ingredients.forEach(ing => {
+        const base = this.baseName(ing);
+        if (map[base]) {
+          map[base].qty.push(ing);
+          if (!map[base].meals.includes(meal.name)) map[base].meals.push(meal.name);
+        } else {
+          map[base] = {
+            base: base,
+            display: ing,
+            qty: [ing],
+            meals: [meal.name],
+            category: this.classifyIngredient(ing),
+            checked: false
+          };
+        }
+      });
+    });
+    return Object.values(map);
+  },
+
+  tomorrowKey() {
+    const d = new Date();
+    d.setDate(d.getDate() + 1);
+    return d.toISOString().split("T")[0];
+  },
+
+  formatDateShort(dateStr) {
+    const d = new Date(dateStr + "T12:00:00");
+    return d.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
+  },
+
   renderGrocery() {
     const el = document.getElementById("grocery-content");
-    const plan = this.getPlan(this.date);
+    const groceryDate = localStorage.getItem("grocery_active_date") || this.date;
+    const plan = this.getPlan(groceryDate);
+    const todayPlan = this.getPlan(this.date);
+    const tomorrowDate = this.tomorrowKey();
+    const tomorrowPlan = this.getPlan(tomorrowDate);
+    const info = calcDailyCalories();
+
+    // Header with generate button
+    let html = '<div class="grocery-header">' +
+      '<button class="btn btn-primary" id="gen-tomorrow-btn">' +
+      "Generate Tomorrow's List</button>";
+    if (todayPlan) {
+      html += '<button class="btn btn-outline btn-sm" id="show-today-btn">' +
+        "Today's List</button>";
+    }
+    html += "</div>";
+
     if (!plan) {
-      el.innerHTML = '<p class="empty">Generate a meal plan first in Today\'s Meals tab.</p>';
+      html += '<p class="empty">No meal plan yet. Click the button above to generate ' +
+        "tomorrow's plan, or create today's plan in the Meals tab.</p>";
+      el.innerHTML = html;
+      this.groceryListeners(el, null, groceryDate, info, tomorrowDate);
       return;
     }
 
-    const items = [];
-    const seen = {};
-    Object.values(plan).forEach(meal => {
-      meal.ingredients.forEach(ing => {
-        const key = ing.toLowerCase();
-        if (seen[key]) { seen[key].count++; }
-        else { seen[key] = { name: ing, count: 1, checked: false }; items.push(seen[key]); }
-      });
-    });
+    // Build categorized list
+    const items = this.buildGroceryList(plan);
+    const saved = JSON.parse(localStorage.getItem("grocery_checked_" + groceryDate) || "{}");
+    items.forEach(item => { if (saved[item.base]) item.checked = true; });
 
-    const saved = JSON.parse(localStorage.getItem("grocery_" + this.date) || "{}");
-    items.forEach(item => { if (saved[item.name]) item.checked = true; });
+    const categories = ["Produce", "Protein", "Dairy", "Pantry"];
+    const catIcons = { Produce: "🥬", Protein: "🥩", Dairy: "🧈", Pantry: "🫙" };
 
-    let html = "<h2>Shopping List</h2>";
-    items.sort((a, b) => a.name.localeCompare(b.name));
-    items.forEach((item, i) => {
-      html += '<label class="grocery-item' + (item.checked ? " checked" : "") + '">' +
-        '<input type="checkbox"' + (item.checked ? " checked" : "") + ' data-idx="' + i + '">' +
-        "<span>" + item.name + (item.count > 1 ? " (x" + item.count + ")" : "") + "</span></label>";
-    });
+    html += '<div class="grocery-date-label">Shopping list for ' +
+      this.formatDateShort(groceryDate) + "</div>";
+
+    const total = items.length;
     const done = items.filter(i => i.checked).length;
-    html += '<p class="grocery-count">' + done + "/" + items.length + " items</p>";
+    html += '<div class="grocery-progress"><span>' + done + " / " + total +
+      " items</span>" +
+      '<div class="bar-track"><div class="bar-fill" style="width:' +
+      (total > 0 ? Math.round((done / total) * 100) : 0) + '%"></div></div></div>';
+
+    let idx = 0;
+    categories.forEach(cat => {
+      const catItems = items.filter(i => i.category === cat);
+      if (!catItems.length) return;
+      html += '<div class="grocery-category"><h3>' + catIcons[cat] + " " + cat +
+        ' <span class="cat-count">(' + catItems.length + ")</span></h3>";
+      catItems.sort((a, b) => a.base.localeCompare(b.base));
+      catItems.forEach(item => {
+        const dupLabel = item.qty.length > 1 ? " (x" + item.qty.length + ")" : "";
+        html += '<label class="grocery-item' + (item.checked ? " checked" : "") + '">' +
+          '<input type="checkbox"' + (item.checked ? " checked" : "") +
+          ' data-base="' + item.base + '">' +
+          "<span>" + item.display + dupLabel + "</span>" +
+          '<small class="grocery-meals">' + item.meals.join(", ") + "</small></label>";
+        idx++;
+      });
+      html += "</div>";
+    });
+
+    html += '<div class="grocery-actions">' +
+      '<button class="btn btn-sm btn-outline" id="uncheck-all-btn">Uncheck All</button></div>';
 
     el.innerHTML = html;
+    this.groceryListeners(el, items, groceryDate, info, tomorrowDate);
+  },
 
-    el.querySelectorAll("input[type=checkbox]").forEach(cb => {
-      cb.addEventListener("change", () => {
-        items[cb.dataset.idx].checked = cb.checked;
-        const state = {};
-        items.forEach(i => { if (i.checked) state[i.name] = true; });
-        localStorage.setItem("grocery_" + this.date, JSON.stringify(state));
+  groceryListeners(el, items, groceryDate, info, tomorrowDate) {
+    // Generate tomorrow's list
+    const genBtn = document.getElementById("gen-tomorrow-btn");
+    if (genBtn) {
+      genBtn.addEventListener("click", () => {
+        let plan = this.getPlan(tomorrowDate);
+        if (!plan) {
+          plan = this.generatePlan(info.target);
+          this.savePlan(tomorrowDate, plan);
+        }
+        localStorage.setItem("grocery_active_date", tomorrowDate);
         this.renderGrocery();
       });
-    });
+    }
+    // Show today's list
+    const todayBtn = document.getElementById("show-today-btn");
+    if (todayBtn) {
+      todayBtn.addEventListener("click", () => {
+        localStorage.setItem("grocery_active_date", this.date);
+        this.renderGrocery();
+      });
+    }
+    // Checkboxes
+    if (items) {
+      el.querySelectorAll("input[type=checkbox]").forEach(cb => {
+        cb.addEventListener("change", () => {
+          const base = cb.dataset.base;
+          const item = items.find(i => i.base === base);
+          if (item) item.checked = cb.checked;
+          const state = {};
+          items.forEach(i => { if (i.checked) state[i.base] = true; });
+          localStorage.setItem("grocery_checked_" + groceryDate, JSON.stringify(state));
+          this.renderGrocery();
+        });
+      });
+    }
+    // Uncheck all
+    const uncheckBtn = document.getElementById("uncheck-all-btn");
+    if (uncheckBtn) {
+      uncheckBtn.addEventListener("click", () => {
+        localStorage.removeItem("grocery_checked_" + groceryDate);
+        this.renderGrocery();
+      });
+    }
   },
 
   // === TRACK PROGRESS ===
