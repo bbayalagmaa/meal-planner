@@ -1,4 +1,3 @@
-/* === Reset & Base === */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 :root {
@@ -6,10 +5,9 @@
   --card: #ffffff;
   --primary: #2d6a4f;
   --primary-light: #40916c;
-  --accent: #d4a373;
   --danger: #e63946;
   --text: #1a1a1a;
-  --text-light: #6b7280;
+  --muted: #6b7280;
   --border: #e5e5e5;
   --radius: 10px;
 }
@@ -18,86 +16,70 @@ body {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   background: var(--bg);
   color: var(--text);
-  max-width: 600px;
+  max-width: 500px;
   margin: 0 auto;
-  padding-bottom: 80px;
   min-height: 100vh;
 }
 
-/* === Header === */
-.app-header {
+/* Header */
+.header {
   background: var(--primary);
   color: white;
-  padding: 16px 20px;
+  padding: 18px 20px 14px;
   text-align: center;
-  position: sticky;
-  top: 0;
-  z-index: 100;
 }
+.header h1 { font-size: 20px; }
+.header-sub { font-size: 13px; opacity: 0.85; margin-top: 4px; }
 
-.app-header h1 { font-size: 20px; font-weight: 600; }
-
-/* === Date Navigation === */
-.date-nav {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-  padding: 12px 16px;
-  background: var(--card);
-  border-bottom: 1px solid var(--border);
-}
-
-.date-nav button {
-  background: none;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  padding: 6px 12px;
-  cursor: pointer;
-  font-size: 14px;
-}
-
-.date-nav button:hover { background: var(--bg); }
-
-#date-display { font-weight: 600; font-size: 15px; min-width: 160px; text-align: center; }
-
-/* === Tab Bar === */
+/* Tabs */
 .tab-bar {
   display: flex;
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  max-width: 600px;
-  margin: 0 auto;
   background: var(--card);
-  border-top: 1px solid var(--border);
-  z-index: 100;
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  z-index: 10;
 }
-
 .tab-btn {
   flex: 1;
-  padding: 10px 4px;
+  padding: 12px 4px;
   border: none;
   background: none;
   cursor: pointer;
-  font-size: 11px;
-  color: var(--text-light);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 2px;
-  transition: color 0.2s;
+  font-size: 13px;
+  color: var(--muted);
+  border-bottom: 2px solid transparent;
+  transition: all 0.2s;
 }
-
-.tab-btn .tab-icon { font-size: 20px; }
-.tab-btn.active { color: var(--primary); font-weight: 600; }
-.tab-btn:hover { color: var(--primary-light); }
+.tab-btn.active {
+  color: var(--primary);
+  font-weight: 600;
+  border-bottom-color: var(--primary);
+}
 
 .tab-content { display: none; padding: 16px; }
 .tab-content.active { display: block; }
 
-/* === Buttons === */
+/* Date nav */
+.date-nav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+.date-nav button {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 6px 14px;
+  cursor: pointer;
+  font-size: 16px;
+}
+.date-nav button:hover { background: var(--border); }
+#date-display { font-weight: 600; font-size: 15px; }
+
+/* Buttons */
 .btn {
   border: none;
   border-radius: var(--radius);
@@ -105,106 +87,80 @@ body {
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
-  transition: opacity 0.2s;
 }
-
 .btn:hover { opacity: 0.85; }
 .btn-primary { background: var(--primary); color: white; }
-.btn-secondary { background: var(--border); color: var(--text); }
+.btn-sm { padding: 6px 14px; font-size: 12px; }
+.btn-outline { background: none; border: 1px solid var(--border); color: var(--text); }
+.btn-eaten { background: var(--primary-light); color: white; }
 .btn-danger { background: var(--danger); color: white; }
-.btn-sm { padding: 6px 12px; font-size: 12px; }
-.btn-log { background: var(--primary-light); color: white; }
-.btn-done { background: var(--accent); color: white; }
-.btn-swap { background: var(--border); color: var(--text); }
 
-/* === Calorie Summary === */
-.calorie-summary {
+/* Calorie bar */
+.calorie-bar {
   background: var(--card);
-  border-radius: var(--radius);
-  padding: 16px;
-  margin-bottom: 16px;
   border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px;
+  margin-bottom: 16px;
 }
-
-.cal-row {
+.calorie-bar .row {
   display: flex;
   justify-content: space-between;
   font-size: 13px;
   margin-bottom: 8px;
 }
-
-.progress-bar {
+.bar-track {
   height: 8px;
   background: var(--bg);
   border-radius: 4px;
   overflow: hidden;
-  margin-bottom: 8px;
 }
-
-.progress-fill {
+.bar-fill {
   height: 100%;
   background: var(--primary);
   border-radius: 4px;
   transition: width 0.3s;
 }
+.bar-fill.over { background: var(--danger); }
 
-.progress-fill.over-budget { background: var(--danger); }
-
-.macros-row {
-  display: flex;
-  gap: 16px;
-  font-size: 12px;
-  color: var(--text-light);
-}
-
-/* === Meal Cards === */
+/* Meal cards */
 .meal-card {
   background: var(--card);
+  border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: 14px;
-  margin-bottom: 12px;
-  border: 1px solid var(--border);
+  margin-bottom: 10px;
 }
-
-.meal-card.logged { border-left: 4px solid var(--primary); }
-
-.meal-header {
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 4px;
-}
-
-.meal-slot {
+.meal-card.eaten { border-left: 4px solid var(--primary); }
+.meal-card .slot {
   text-transform: uppercase;
   font-size: 11px;
   font-weight: 700;
   color: var(--primary);
   letter-spacing: 0.5px;
 }
-
-.meal-cals { font-size: 13px; font-weight: 600; color: var(--text-light); }
-
-.meal-card h3 { font-size: 16px; margin-bottom: 4px; }
-
-.meal-macros { font-size: 12px; color: var(--text-light); margin-bottom: 8px; }
-
-.meal-card details { margin-bottom: 10px; }
-.meal-card summary { font-size: 13px; color: var(--primary); cursor: pointer; margin-bottom: 6px; }
-.meal-card ul { padding-left: 20px; font-size: 13px; margin-bottom: 6px; }
+.meal-card .cals {
+  float: right;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted);
+}
+.meal-card h3 { font-size: 15px; margin: 4px 0; }
+.meal-card .meta { font-size: 12px; color: var(--muted); margin-bottom: 8px; }
+.meal-card details { margin-bottom: 8px; }
+.meal-card summary { font-size: 13px; color: var(--primary); cursor: pointer; }
+.meal-card ul { padding-left: 18px; font-size: 13px; margin: 6px 0; }
 .meal-card li { margin-bottom: 2px; }
-.meal-card details p { font-size: 13px; color: var(--text-light); }
-
+.meal-card details > p { font-size: 13px; color: var(--muted); margin-top: 4px; }
 .meal-actions { display: flex; gap: 8px; }
 
-.plan-actions {
-  display: flex;
-  gap: 8px;
-  margin-top: 8px;
+.generate-row {
+  text-align: center;
+  padding: 30px 0;
 }
+.generate-row p { color: var(--muted); font-size: 14px; margin-bottom: 12px; }
 
-/* === Grocery === */
-.grocery-list { margin: 12px 0; }
-
+/* Grocery */
 .grocery-item {
   display: flex;
   align-items: center;
@@ -217,30 +173,26 @@ body {
   cursor: pointer;
   font-size: 14px;
 }
-
-.grocery-item.checked span { text-decoration: line-through; color: var(--text-light); }
+.grocery-item.checked span { text-decoration: line-through; color: var(--muted); }
 .grocery-item input[type=checkbox] { width: 18px; height: 18px; accent-color: var(--primary); }
-.grocery-count { text-align: center; color: var(--text-light); font-size: 13px; }
-.subtitle { color: var(--text-light); font-size: 13px; margin-bottom: 8px; }
+.grocery-count { text-align: center; color: var(--muted); font-size: 13px; margin-top: 10px; }
 
-/* === Progress === */
-.progress-section {
+/* Progress */
+.section {
   background: var(--card);
+  border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: 16px;
-  margin-bottom: 16px;
-  border: 1px solid var(--border);
+  margin-bottom: 14px;
 }
+.section h2 { font-size: 16px; margin-bottom: 12px; }
 
-.progress-section h2 { font-size: 16px; margin-bottom: 12px; }
-
-.weight-input-row {
+.input-row {
   display: flex;
   gap: 8px;
-  margin-bottom: 16px;
+  margin-bottom: 14px;
 }
-
-.weight-input-row input {
+.input-row input {
   flex: 1;
   padding: 10px;
   border: 1px solid var(--border);
@@ -248,52 +200,35 @@ body {
   font-size: 14px;
 }
 
-.weight-stats {
+.stats {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 8px;
 }
-
 .stat {
   background: var(--bg);
   padding: 10px;
   border-radius: 8px;
   text-align: center;
 }
+.stat-label { display: block; font-size: 11px; color: var(--muted); text-transform: uppercase; }
+.stat-val { display: block; font-size: 18px; font-weight: 700; margin-top: 2px; }
 
-.stat-label { display: block; font-size: 11px; color: var(--text-light); text-transform: uppercase; }
-.stat-value { display: block; font-size: 18px; font-weight: 700; margin-top: 2px; }
+.history-list { list-style: none; margin-top: 10px; }
+.history-list li { padding: 5px 0; font-size: 13px; border-bottom: 1px solid var(--bg); }
 
-.weight-history { margin-top: 12px; }
-.weight-history h3 { font-size: 14px; margin-bottom: 8px; }
-.weight-history ul { list-style: none; }
-.weight-history li { padding: 4px 0; font-size: 13px; border-bottom: 1px solid var(--bg); }
-
-/* Calorie bars */
-.cal-history { display: flex; flex-direction: column; gap: 6px; }
-
-.cal-day {
+.cal-bars { display: flex; flex-direction: column; gap: 6px; }
+.cal-row {
   display: flex;
   align-items: center;
   gap: 8px;
   font-size: 12px;
 }
-
-.cal-day-label { width: 45px; color: var(--text-light); }
-.cal-day-bar { flex: 1; height: 12px; background: var(--bg); border-radius: 6px; overflow: hidden; }
-.cal-day-fill { height: 100%; background: var(--primary); border-radius: 6px; }
-.cal-day-fill.over-budget { background: var(--danger); }
-.cal-day-val { width: 40px; text-align: right; font-weight: 600; }
-
-.warning-box {
-  background: #fff3cd;
-  border: 1px solid #ffc107;
-  color: #856404;
-  padding: 12px;
-  border-radius: var(--radius);
-  font-size: 13px;
-  margin-bottom: 16px;
-}
+.cal-row .label { width: 42px; color: var(--muted); }
+.cal-row .track { flex: 1; height: 12px; background: var(--bg); border-radius: 6px; overflow: hidden; }
+.cal-row .fill { height: 100%; background: var(--primary); border-radius: 6px; }
+.cal-row .fill.over { background: var(--danger); }
+.cal-row .val { width: 36px; text-align: right; font-weight: 600; }
 
 .info-grid {
   display: grid;
@@ -301,48 +236,16 @@ body {
   gap: 6px;
   font-size: 13px;
 }
+.info-grid div { padding: 6px; background: var(--bg); border-radius: 6px; }
 
-.info-grid div {
-  padding: 6px;
-  background: var(--bg);
-  border-radius: 6px;
-}
-
-/* === Settings === */
-.settings-form {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.settings-form label {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  font-size: 13px;
-  font-weight: 600;
-}
-
-.settings-form input, .settings-form select {
+.warning {
+  background: #fff3cd;
+  border: 1px solid #ffc107;
+  color: #856404;
   padding: 10px;
-  border: 1px solid var(--border);
   border-radius: var(--radius);
-  font-size: 14px;
-  font-weight: 400;
+  font-size: 13px;
+  margin-bottom: 14px;
 }
 
-.danger-zone { margin-top: 20px; }
-.danger-zone h3 { font-size: 14px; margin-bottom: 8px; }
-
-.empty-msg {
-  text-align: center;
-  color: var(--text-light);
-  padding: 40px 20px;
-  font-size: 14px;
-}
-
-/* === Responsive === */
-@media (min-width: 600px) {
-  .tab-btn { font-size: 13px; }
-  .tab-btn .tab-icon { font-size: 22px; }
-}
+.empty { text-align: center; color: var(--muted); padding: 30px; font-size: 14px; }

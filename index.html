@@ -7,60 +7,40 @@
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <header class="app-header">
+  <header class="header">
     <h1>Meal Planner</h1>
+    <p class="header-sub" id="calorie-target"></p>
   </header>
-
-  <nav class="date-nav">
-    <button id="prev-day">&larr;</button>
-    <span id="date-display"></span>
-    <button id="next-day">&rarr;</button>
-    <button id="today-btn">Today</button>
-  </nav>
-
-  <!-- Tab Contents -->
-  <div id="tab-planner" class="tab-content active">
-    <div id="planner-content"></div>
-  </div>
-
-  <div id="tab-grocery" class="tab-content">
-    <div id="grocery-content"></div>
-  </div>
-
-  <div id="tab-progress" class="tab-content">
-    <div id="progress-content"></div>
-  </div>
-
-  <div id="tab-settings" class="tab-content">
-    <div id="settings-content"></div>
-  </div>
 
   <!-- Tab Bar -->
   <nav class="tab-bar">
-    <button class="tab-btn active" data-tab="planner">
-      <span class="tab-icon">&#127858;</span>
-      Planner
-    </button>
-    <button class="tab-btn" data-tab="grocery">
-      <span class="tab-icon">&#128722;</span>
-      Grocery
-    </button>
-    <button class="tab-btn" data-tab="progress">
-      <span class="tab-icon">&#128200;</span>
-      Progress
-    </button>
-    <button class="tab-btn" data-tab="settings">
-      <span class="tab-icon">&#9881;</span>
-      Settings
-    </button>
+    <button class="tab-btn active" data-tab="meals">Today's Meals</button>
+    <button class="tab-btn" data-tab="grocery">Grocery List</button>
+    <button class="tab-btn" data-tab="progress">Track Progress</button>
   </nav>
 
-  <!-- Scripts (order matters) -->
+  <!-- Tab: Today's Meals -->
+  <section id="tab-meals" class="tab-content active">
+    <div class="date-nav">
+      <button id="prev-day">&larr;</button>
+      <span id="date-display"></span>
+      <button id="next-day">&rarr;</button>
+    </div>
+    <div id="meals-content"></div>
+  </section>
+
+  <!-- Tab: Grocery List -->
+  <section id="tab-grocery" class="tab-content">
+    <div id="grocery-content"></div>
+  </section>
+
+  <!-- Tab: Track Progress -->
+  <section id="tab-progress" class="tab-content">
+    <div id="progress-content"></div>
+  </section>
+
   <script src="recipes.js"></script>
   <script src="nutrition.js"></script>
-  <script src="meal_plan.js"></script>
-  <script src="grocery.js"></script>
-  <script src="progress.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
