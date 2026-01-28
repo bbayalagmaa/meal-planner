@@ -4,14 +4,49 @@
 const App = {
   date: new Date().toISOString().split("T")[0],
 
+  cookTimeFilter: "all", // "all", "15", "30", "45"
+
   init() {
     const info = calcDailyCalories();
     document.getElementById("calorie-target").textContent =
       "Daily target: " + info.target + " cal";
 
+    this.setupThemeToggle();
     this.setupTabs();
     this.setupDateNav();
     this.renderMeals();
+  },
+
+  // --- Theme toggle ---
+  setupThemeToggle() {
+    const btn = document.getElementById("theme-toggle");
+    btn.addEventListener("click", () => {
+      const isDark = document.documentElement.getAttribute("data-theme") === "dark";
+      if (isDark) {
+        document.documentElement.removeAttribute("data-theme");
+        localStorage.removeItem("theme");
+      } else {
+        document.documentElement.setAttribute("data-theme", "dark");
+        localStorage.setItem("theme", "dark");
+      }
+    });
+  },
+
+  // --- Favorites ---
+  getFavorites() {
+    return JSON.parse(localStorage.getItem("favorites") || "[]");
+  },
+  toggleFavorite(recipeId) {
+    let favs = this.getFavorites();
+    if (favs.includes(recipeId)) {
+      favs = favs.filter(id => id !== recipeId);
+    } else {
+      favs.push(recipeId);
+    }
+    localStorage.setItem("favorites", JSON.stringify(favs));
+  },
+  isFavorite(recipeId) {
+    return this.getFavorites().includes(recipeId);
   },
 
   // --- Tabs ---
@@ -58,8 +93,23 @@ const App = {
     const plan = this.getPlan(this.date);
     const info = calcDailyCalories();
 
+    // Cook time filter
+    let filterHtml = '<div class="filter-row">' +
+      '<label>Cook time:</label>' +
+      '<select id="cook-filter">' +
+      '<option value="all"' + (this.cookTimeFilter === "all" ? " selected" : "") + '>All</option>' +
+      '<option value="15"' + (this.cookTimeFilter === "15" ? " selected" : "") + '>&le; 15 min</option>' +
+      '<option value="30"' + (this.cookTimeFilter === "30" ? " selected" : "") + '>&le; 30 min</option>' +
+      '<option value="45"' + (this.cookTimeFilter === "45" ? " selected" : "") + '>&le; 45 min</option>' +
+      '</select></div>';
+    el.innerHTML = filterHtml;
+    document.getElementById("cook-filter").addEventListener("change", (e) => {
+      this.cookTimeFilter = e.target.value;
+      this.renderMeals();
+    });
+
     if (!plan) {
-      el.innerHTML = '<div class="generate-row">' +
+      el.innerHTML += '<div class="generate-row">' +
         "<p>No meals planned for this day</p>" +
         '<button class="btn btn-primary" id="gen-btn">Generate Today\'s Plan</button></div>';
       document.getElementById("gen-btn").addEventListener("click", () => {
@@ -93,14 +143,19 @@ const App = {
       '<div class="macro-row">P: ' + planProtein + 'g | C: ' + planCarbs + 'g | F: ' + planFat + 'g</div></div>';
 
     const slotLabels = { breakfast: "Breakfast", lunch: "Lunch", dinner: "Dinner", snack1: "Snack 1", snack2: "Snack 2" };
+    const maxTime = this.cookTimeFilter === "all" ? Infinity : parseInt(this.cookTimeFilter);
 
     slots.forEach(slot => {
       const meal = plan[slot];
       if (!meal) return;
+      if (meal.cookTime > maxTime) return;
       const isEaten = !!eaten[slot];
+      const isFav = this.isFavorite(meal.id);
       html += '<div class="meal-card' + (isEaten ? " eaten" : "") + '">' +
         '<span class="slot">' + slotLabels[slot] + '</span><span class="cals">' + meal.calories + ' cal</span>' +
-        "<h3>" + meal.name + "</h3>" +
+        '<h3>' + meal.name +
+        (isFav ? ' <span class="fav-indicator">&#9733;</span>' : '') +
+        '</h3>' +
         '<div class="meta">Cook time: ' + meal.cookTime + ' min | P: ' + meal.protein + "g | C: " + meal.carbs + "g | F: " + meal.fat + "g</div>" +
         '<div class="ingredients"><strong>Ingredients:</strong><ul>' +
         meal.ingredients.map(i => "<li>" + i + "</li>").join("") + "</ul></div>" +
@@ -109,6 +164,8 @@ const App = {
         '<button class="btn btn-sm ' + (isEaten ? "btn-eaten" : "btn-outline") +
         '" data-slot="' + slot + '" data-action="eat">' + (isEaten ? "Eaten" : "Mark Eaten") + "</button>" +
         '<button class="btn btn-sm btn-outline" data-slot="' + slot + '" data-action="swap">Swap</button>' +
+        '<button class="fav-btn' + (isFav ? " active" : "") +
+        '" data-id="' + meal.id + '" title="' + (isFav ? "Unfavorite" : "Favorite") + '">&#9733;</button>' +
         "</div></div>";
     });
 
@@ -116,7 +173,21 @@ const App = {
       '<button class="btn btn-sm btn-outline" id="regen-btn">Regenerate</button>' +
       '<button class="btn btn-sm btn-danger" id="clear-btn">Clear</button></div>';
 
-    el.innerHTML = html;
+    el.innerHTML = filterHtml + html;
+
+    // Re-attach filter listener after innerHTML replacement
+    document.getElementById("cook-filter").addEventListener("change", (e) => {
+      this.cookTimeFilter = e.target.value;
+      this.renderMeals();
+    });
+
+    // Favorite toggles
+    el.querySelectorAll(".fav-btn").forEach(btn => {
+      btn.addEventListener("click", () => {
+        this.toggleFavorite(parseInt(btn.dataset.id));
+        this.renderMeals();
+      });
+    });
 
     el.querySelectorAll("[data-action=eat]").forEach(btn => {
       btn.addEventListener("click", () => {
@@ -153,7 +224,16 @@ const App = {
   },
 
   generatePlan(calorieTarget) {
-    const pick = arr => arr[Math.floor(Math.random() * arr.length)];
+    // Weighted pick: favorites appear 3x more often
+    const favs = this.getFavorites();
+    const pick = arr => {
+      const weighted = [];
+      arr.forEach(r => {
+        const times = favs.includes(r.id) ? 3 : 1;
+        for (let i = 0; i < times; i++) weighted.push(r);
+      });
+      return weighted[Math.floor(Math.random() * weighted.length)];
+    };
     // Try up to 10 times to find a combo that fits the budget
     let best = null;
     for (let attempt = 0; attempt < 10; attempt++) {
@@ -306,7 +386,8 @@ const App = {
     });
 
     html += '<div class="grocery-actions">' +
-      '<button class="btn btn-sm btn-outline" id="uncheck-all-btn">Uncheck All</button></div>';
+      '<button class="btn btn-sm btn-outline" id="uncheck-all-btn">Uncheck All</button> ' +
+      '<button class="btn btn-sm btn-primary" id="print-btn">Print List</button></div>';
 
     el.innerHTML = html;
     this.groceryListeners(el, items, groceryDate, info, tomorrowDate);
@@ -355,6 +436,11 @@ const App = {
         localStorage.removeItem("grocery_checked_" + groceryDate);
         this.renderGrocery();
       });
+    }
+    // Print grocery list
+    const printBtn = document.getElementById("print-btn");
+    if (printBtn) {
+      printBtn.addEventListener("click", () => window.print());
     }
   },
 

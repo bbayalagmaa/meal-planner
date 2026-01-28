@@ -1,28 +1,45 @@
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 :root {
-  --bg: #f4f4f0;
+  --bg: #f5f3ef;
   --card: #ffffff;
   --primary: #2d6a4f;
   --primary-light: #40916c;
-  --accent: #d4a373;
-  --danger: #e63946;
+  --accent: #c87941;
+  --danger: #d64045;
   --success: #2d6a4f;
-  --text: #1a1a1a;
+  --text: #1e1e1e;
   --muted: #6b7280;
-  --border: #e5e5e5;
-  --radius: 12px;
-  --shadow: 0 1px 3px rgba(0,0,0,0.06);
+  --border: #e2dfda;
+  --radius: 14px;
+  --shadow: 0 1px 4px rgba(0,0,0,0.05), 0 1px 2px rgba(0,0,0,0.04);
+  --font: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+[data-theme="dark"] {
+  --bg: #1a1a1e;
+  --card: #26262b;
+  --primary: #52b788;
+  --primary-light: #74c69d;
+  --accent: #e0a458;
+  --danger: #ef6461;
+  --success: #52b788;
+  --text: #e8e6e3;
+  --muted: #9ca3af;
+  --border: #38383d;
+  --shadow: 0 1px 4px rgba(0,0,0,0.2), 0 1px 2px rgba(0,0,0,0.15);
 }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-family: var(--font);
   background: var(--bg);
   color: var(--text);
   max-width: 520px;
   margin: 0 auto;
   min-height: 100vh;
   -webkit-font-smoothing: antialiased;
+  line-height: 1.5;
+  letter-spacing: -0.01em;
 }
 
 /* Header */
@@ -32,8 +49,38 @@ body {
   padding: 20px 20px 16px;
   text-align: center;
 }
-.header h1 { font-size: 21px; font-weight: 700; letter-spacing: -0.3px; }
+[data-theme="dark"] .header {
+  background: linear-gradient(135deg, #1b4332 0%, #0f2b1f 100%);
+}
+.header-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+.header h1 { font-size: 21px; font-weight: 800; letter-spacing: -0.4px; }
 .header-sub { font-size: 13px; opacity: 0.8; margin-top: 4px; }
+
+/* Theme toggle */
+.theme-toggle {
+  position: absolute;
+  right: 0;
+  background: rgba(255,255,255,0.15);
+  border: none;
+  border-radius: 8px;
+  width: 36px;
+  height: 36px;
+  cursor: pointer;
+  font-size: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s;
+  -webkit-tap-highlight-color: transparent;
+}
+.theme-toggle::after { content: "\263D"; color: white; }
+[data-theme="dark"] .theme-toggle::after { content: "\2600"; }
+.theme-toggle:hover { background: rgba(255,255,255,0.25); }
 
 /* Tabs */
 .tab-bar {
@@ -52,6 +99,7 @@ body {
   background: none;
   cursor: pointer;
   font-size: 13px;
+  font-family: var(--font);
   color: var(--muted);
   border-bottom: 2.5px solid transparent;
   transition: all 0.2s;
@@ -77,15 +125,40 @@ body {
 .date-nav button {
   background: var(--card);
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: 10px;
   padding: 8px 16px;
   cursor: pointer;
   font-size: 16px;
+  color: var(--text);
   box-shadow: var(--shadow);
   -webkit-tap-highlight-color: transparent;
 }
 .date-nav button:active { background: var(--bg); }
 #date-display { font-weight: 700; font-size: 15px; }
+
+/* Cook time filter */
+.filter-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+.filter-row label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted);
+}
+.filter-row select {
+  padding: 7px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--card);
+  color: var(--text);
+  font-size: 13px;
+  font-family: var(--font);
+  cursor: pointer;
+}
 
 /* Buttons */
 .btn {
@@ -94,13 +167,14 @@ body {
   padding: 11px 22px;
   font-size: 14px;
   font-weight: 600;
+  font-family: var(--font);
   cursor: pointer;
   transition: transform 0.1s, opacity 0.15s;
   -webkit-tap-highlight-color: transparent;
 }
 .btn:active { transform: scale(0.97); }
 .btn:hover { opacity: 0.9; }
-.btn-primary { background: var(--primary); color: white; box-shadow: 0 2px 6px rgba(45,106,79,0.25); }
+.btn-primary { background: var(--primary); color: white; box-shadow: 0 2px 8px rgba(45,106,79,0.2); }
 .btn-sm { padding: 7px 14px; font-size: 12px; border-radius: 8px; }
 .btn-outline { background: none; border: 1px solid var(--border); color: var(--text); }
 .btn-eaten { background: var(--primary-light); color: white; }
@@ -160,7 +234,13 @@ body {
   font-weight: 700;
   color: var(--muted);
 }
-.meal-card h3 { font-size: 15px; margin: 4px 0 6px; }
+.meal-card h3 {
+  font-size: 15px;
+  margin: 4px 0 6px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
 .meal-card .meta { font-size: 12px; color: var(--muted); margin-bottom: 10px; }
 .meal-card .ingredients { margin-bottom: 8px; }
 .meal-card .ingredients strong, .meal-card .steps strong { font-size: 12px; color: var(--primary); }
@@ -172,6 +252,22 @@ body {
 .macro-row { font-size: 12px; color: var(--muted); margin-top: 6px; }
 .calorie-bar .under { color: var(--primary); font-weight: 700; font-size: 12px; }
 .calorie-bar .over { color: var(--danger); font-weight: 700; font-size: 12px; }
+
+/* Favorite button */
+.fav-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 18px;
+  padding: 0;
+  line-height: 1;
+  opacity: 0.3;
+  transition: opacity 0.15s, transform 0.15s;
+  -webkit-tap-highlight-color: transparent;
+}
+.fav-btn:hover { opacity: 0.6; }
+.fav-btn.active { opacity: 1; }
+.fav-indicator { font-size: 12px; opacity: 0.7; }
 
 .generate-row {
   text-align: center;
@@ -302,7 +398,9 @@ body {
   border: 1px solid var(--border);
   border-radius: var(--radius);
   font-size: 15px;
+  font-family: var(--font);
   background: var(--bg);
+  color: var(--text);
   transition: border-color 0.2s;
 }
 .input-row input:focus { border-color: var(--primary); outline: none; }
@@ -384,6 +482,11 @@ body {
   font-size: 13px;
   margin-bottom: 12px;
 }
+[data-theme="dark"] .warning {
+  background: #3a3120;
+  border-color: #5c4a1e;
+  color: #f0d060;
+}
 
 .empty { text-align: center; color: var(--muted); padding: 30px; font-size: 14px; }
 .empty-sm { text-align: center; color: var(--muted); padding: 16px 0; font-size: 13px; }
@@ -403,14 +506,14 @@ body {
 
 /* Print styles */
 @media print {
-  body { max-width: 100%; background: white; }
+  body { max-width: 100%; background: white; color: #1a1a1a; }
   .header, .tab-bar, .date-nav, .grocery-header,
-  .grocery-actions, .btn { display: none !important; }
+  .grocery-actions, .btn, .theme-toggle { display: none !important; }
   .tab-content { display: none !important; padding: 0; }
   #tab-grocery { display: block !important; }
   .grocery-date-label { font-size: 18px; margin-bottom: 12px; }
   .grocery-category h3 { font-size: 16px; }
-  .grocery-item { border: none; border-bottom: 1px solid #ddd; border-radius: 0; padding: 6px 0; }
+  .grocery-item { border: none; border-bottom: 1px solid #ddd; border-radius: 0; padding: 6px 0; background: white; }
   .grocery-item input[type=checkbox] { width: 16px; height: 16px; }
   .grocery-meals { display: none; }
   .grocery-progress .bar-track { display: none; }

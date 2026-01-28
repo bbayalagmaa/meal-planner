@@ -5,10 +5,20 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Meal Planner</title>
   <link rel="stylesheet" href="styles.css">
+  <script>
+    // Apply saved theme before render to avoid flash
+    (function() {
+      var t = localStorage.getItem("theme");
+      if (t === "dark") document.documentElement.setAttribute("data-theme", "dark");
+    })();
+  </script>
 </head>
 <body>
   <header class="header">
-    <h1>Meal Planner</h1>
+    <div class="header-row">
+      <h1>Meal Planner</h1>
+      <button class="theme-toggle" id="theme-toggle" aria-label="Toggle dark mode"></button>
+    </div>
     <p class="header-sub" id="calorie-target"></p>
   </header>
 
