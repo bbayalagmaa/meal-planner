@@ -61,6 +61,44 @@ body {
 .header h1 { font-size: 21px; font-weight: 800; letter-spacing: -0.4px; }
 .header-sub { font-size: 13px; opacity: 0.8; margin-top: 4px; }
 
+/* Calorie target input */
+.target-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 8px;
+  font-size: 13px;
+  opacity: 0.9;
+}
+.target-row label { font-weight: 600; }
+.target-row input {
+  width: 70px;
+  padding: 4px 8px;
+  border: 1px solid rgba(255,255,255,0.3);
+  border-radius: 6px;
+  background: rgba(255,255,255,0.15);
+  color: white;
+  font-size: 14px;
+  font-family: var(--font);
+  font-weight: 700;
+  text-align: center;
+}
+.target-row input:focus { outline: none; border-color: rgba(255,255,255,0.6); background: rgba(255,255,255,0.25); }
+.target-row button {
+  padding: 4px 10px;
+  border: 1px solid rgba(255,255,255,0.3);
+  border-radius: 6px;
+  background: rgba(255,255,255,0.15);
+  color: white;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: var(--font);
+  transition: background 0.15s;
+}
+.target-row button:hover { background: rgba(255,255,255,0.3); }
+
 /* Theme toggle */
 .theme-toggle {
   position: absolute;
@@ -331,6 +369,18 @@ body {
   flex-shrink: 0;
 }
 .grocery-meals { display: block; font-size: 11px; color: var(--muted); margin-top: 1px; }
+.grocery-day-tag {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: var(--primary);
+  color: white;
+  white-space: nowrap;
+}
+.grocery-day-tag.tomorrow {
+  background: var(--accent);
+}
 .grocery-actions { margin-top: 10px; text-align: center; }
 
 /* ========== PROGRESS ========== */
@@ -508,7 +558,7 @@ body {
 @media print {
   body { max-width: 100%; background: white; color: #1a1a1a; }
   .header, .tab-bar, .date-nav, .grocery-header,
-  .grocery-actions, .btn, .theme-toggle { display: none !important; }
+  .grocery-actions, .btn, .theme-toggle, .target-row { display: none !important; }
   .tab-content { display: none !important; padding: 0; }
   #tab-grocery { display: block !important; }
   .grocery-date-label { font-size: 18px; margin-bottom: 12px; }

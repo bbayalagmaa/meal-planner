@@ -6,15 +6,34 @@ const App = {
 
   cookTimeFilter: "all", // "all", "15", "30", "45"
 
-  init() {
-    const info = calcDailyCalories();
-    document.getElementById("calorie-target").textContent =
-      "Daily target: " + info.target + " cal";
+  // --- Custom calorie target ---
+  getTarget() {
+    const custom = localStorage.getItem("custom_calorie_target");
+    if (custom) return parseInt(custom);
+    return calcDailyCalories().target;
+  },
 
+  init() {
+    this.setupCalorieInput();
     this.setupThemeToggle();
     this.setupTabs();
     this.setupDateNav();
     this.renderMeals();
+  },
+
+  setupCalorieInput() {
+    const input = document.getElementById("calorie-input");
+    const btn = document.getElementById("save-target-btn");
+    input.value = this.getTarget();
+    const save = () => {
+      const val = parseInt(input.value);
+      if (val && val >= 500 && val <= 5000) {
+        localStorage.setItem("custom_calorie_target", val);
+        this.renderMeals();
+      }
+    };
+    btn.addEventListener("click", save);
+    input.addEventListener("keydown", (e) => { if (e.key === "Enter") save(); });
   },
 
   // --- Theme toggle ---
@@ -91,7 +110,7 @@ const App = {
   renderMeals() {
     const el = document.getElementById("meals-content");
     const plan = this.getPlan(this.date);
-    const info = calcDailyCalories();
+    const target = this.getTarget();
 
     // Cook time filter
     let filterHtml = '<div class="filter-row">' +
@@ -113,7 +132,7 @@ const App = {
         "<p>No meals planned for this day</p>" +
         '<button class="btn btn-primary" id="gen-btn">Generate Today\'s Plan</button></div>';
       document.getElementById("gen-btn").addEventListener("click", () => {
-        this.savePlan(this.date, this.generatePlan(info.target));
+        this.savePlan(this.date, this.generatePlan(target));
         this.renderMeals();
       });
       return;
@@ -128,16 +147,16 @@ const App = {
     const planProtein = slots.reduce((s, slot) => s + (plan[slot] ? plan[slot].protein : 0), 0);
     const planCarbs = slots.reduce((s, slot) => s + (plan[slot] ? plan[slot].carbs : 0), 0);
     const planFat = slots.reduce((s, slot) => s + (plan[slot] ? plan[slot].fat : 0), 0);
-    const pct = Math.min(100, (eatenCals / info.target) * 100);
-    const underOver = planCals <= info.target
-      ? (info.target - planCals) + " cal under budget"
-      : (planCals - info.target) + " cal over budget";
+    const pct = Math.min(100, (eatenCals / target) * 100);
+    const underOver = planCals <= target
+      ? (target - planCals) + " cal under budget"
+      : (planCals - target) + " cal over budget";
 
     let html = '<div class="calorie-bar">' +
-      '<div class="row"><span>Target: <strong>' + info.target + ' cal</strong></span>' +
+      '<div class="row"><span>Target: <strong>' + target + ' cal</strong></span>' +
       '<span>Plan: <strong>' + planCals + ' cal</strong></span></div>' +
       '<div class="row"><span>Eaten: <strong>' + eatenCals + ' cal</strong></span>' +
-      '<span class="' + (planCals <= info.target ? "under" : "over") + '">' + underOver + '</span></div>' +
+      '<span class="' + (planCals <= target ? "under" : "over") + '">' + underOver + '</span></div>' +
       '<div class="bar-track"><div class="bar-fill' + (pct > 100 ? " over" : "") +
       '" style="width:' + pct + '%"></div></div>' +
       '<div class="macro-row">P: ' + planProtein + 'g | C: ' + planCarbs + 'g | F: ' + planFat + 'g</div></div>';
@@ -214,7 +233,7 @@ const App = {
       });
     });
     document.getElementById("regen-btn").addEventListener("click", () => {
-      this.savePlan(this.date, this.generatePlan(info.target));
+      this.savePlan(this.date, this.generatePlan(target));
       this.renderMeals();
     });
     document.getElementById("clear-btn").addEventListener("click", () => {
@@ -283,28 +302,34 @@ const App = {
     return ingredient.replace(/\s+\d[\d/.*]*\s*(g|kg|ml|l|tsp|tbsp|cloves?|slice|scoop)?\s*$/i, "").trim().toLowerCase();
   },
 
-  // Build categorized, deduplicated list from a plan
-  buildGroceryList(plan) {
+  // Build categorized, deduplicated list from one or more plans
+  // plans: array of { plan, dayLabel } objects
+  buildGroceryList(plans) {
     const map = {};
     const slots = ["breakfast", "lunch", "dinner", "snack1", "snack2"];
-    slots.forEach(slot => {
-      const meal = plan[slot];
-      if (!meal) return;
-      meal.ingredients.forEach(ing => {
-        const base = this.baseName(ing);
-        if (map[base]) {
-          map[base].qty.push(ing);
-          if (!map[base].meals.includes(meal.name)) map[base].meals.push(meal.name);
-        } else {
-          map[base] = {
-            base: base,
-            display: ing,
-            qty: [ing],
-            meals: [meal.name],
-            category: this.classifyIngredient(ing),
-            checked: false
-          };
-        }
+    plans.forEach(({ plan, dayLabel }) => {
+      if (!plan) return;
+      slots.forEach(slot => {
+        const meal = plan[slot];
+        if (!meal) return;
+        meal.ingredients.forEach(ing => {
+          const base = this.baseName(ing);
+          if (map[base]) {
+            map[base].qty.push(ing);
+            if (!map[base].meals.includes(meal.name)) map[base].meals.push(meal.name);
+            if (!map[base].days.includes(dayLabel)) map[base].days.push(dayLabel);
+          } else {
+            map[base] = {
+              base: base,
+              display: ing,
+              qty: [ing],
+              meals: [meal.name],
+              days: [dayLabel],
+              category: this.classifyIngredient(ing),
+              checked: false
+            };
+          }
+        });
       });
     });
     return Object.values(map);
@@ -323,41 +348,48 @@ const App = {
 
   renderGrocery() {
     const el = document.getElementById("grocery-content");
-    const groceryDate = localStorage.getItem("grocery_active_date") || this.date;
-    const plan = this.getPlan(groceryDate);
-    const todayPlan = this.getPlan(this.date);
+    const today = new Date().toISOString().split("T")[0];
     const tomorrowDate = this.tomorrowKey();
+    const todayPlan = this.getPlan(today);
     const tomorrowPlan = this.getPlan(tomorrowDate);
-    const info = calcDailyCalories();
+    const target = this.getTarget();
 
-    // Header with generate button
-    let html = '<div class="grocery-header">' +
-      '<button class="btn btn-primary" id="gen-tomorrow-btn">' +
-      "Generate Tomorrow's List</button>";
-    if (todayPlan) {
-      html += '<button class="btn btn-outline btn-sm" id="show-today-btn">' +
-        "Today's List</button>";
+    // Header with generate buttons
+    let html = '<div class="grocery-header">';
+    if (!todayPlan) {
+      html += '<button class="btn btn-primary btn-sm" id="gen-today-btn">Generate Today</button>';
+    }
+    if (!tomorrowPlan) {
+      html += '<button class="btn btn-primary btn-sm" id="gen-tomorrow-btn">Generate Tomorrow</button>';
     }
     html += "</div>";
 
-    if (!plan) {
-      html += '<p class="empty">No meal plan yet. Click the button above to generate ' +
-        "tomorrow's plan, or create today's plan in the Meals tab.</p>";
+    if (!todayPlan && !tomorrowPlan) {
+      html += '<p class="empty">No meal plans yet. Generate today\'s or tomorrow\'s plan to see your shopping list.</p>';
       el.innerHTML = html;
-      this.groceryListeners(el, null, groceryDate, info, tomorrowDate);
+      this.groceryListeners(el, null, today);
       return;
     }
 
-    // Build categorized list
-    const items = this.buildGroceryList(plan);
-    const saved = JSON.parse(localStorage.getItem("grocery_checked_" + groceryDate) || "{}");
+    // Build combined 2-day list
+    const dayPlans = [];
+    if (todayPlan) dayPlans.push({ plan: todayPlan, dayLabel: "Today" });
+    if (tomorrowPlan) dayPlans.push({ plan: tomorrowPlan, dayLabel: "Tomorrow" });
+    const items = this.buildGroceryList(dayPlans);
+
+    // Load checked state (keyed by combined 2-day key)
+    const checkKey = "grocery_checked_2day_" + today;
+    const saved = JSON.parse(localStorage.getItem(checkKey) || "{}");
     items.forEach(item => { if (saved[item.base]) item.checked = true; });
 
     const categories = ["Produce", "Protein", "Dairy", "Pantry"];
     const catIcons = { Produce: "🥬", Protein: "🥩", Dairy: "🧈", Pantry: "🫙" };
 
-    html += '<div class="grocery-date-label">Shopping list for ' +
-      this.formatDateShort(groceryDate) + "</div>";
+    // Title
+    let titleParts = [];
+    if (todayPlan) titleParts.push(this.formatDateShort(today));
+    if (tomorrowPlan) titleParts.push(this.formatDateShort(tomorrowDate));
+    html += '<div class="grocery-date-label">Shopping list for ' + titleParts.join(" + ") + "</div>";
 
     const total = items.length;
     const done = items.filter(i => i.checked).length;
@@ -366,7 +398,6 @@ const App = {
       '<div class="bar-track"><div class="bar-fill" style="width:' +
       (total > 0 ? Math.round((done / total) * 100) : 0) + '%"></div></div></div>';
 
-    let idx = 0;
     categories.forEach(cat => {
       const catItems = items.filter(i => i.category === cat);
       if (!catItems.length) return;
@@ -375,12 +406,14 @@ const App = {
       catItems.sort((a, b) => a.base.localeCompare(b.base));
       catItems.forEach(item => {
         const dupLabel = item.qty.length > 1 ? " (x" + item.qty.length + ")" : "";
+        const dayTags = item.days.map(d =>
+          '<span class="grocery-day-tag' + (d === "Tomorrow" ? " tomorrow" : "") + '">' + d + '</span>'
+        ).join(" ");
         html += '<label class="grocery-item' + (item.checked ? " checked" : "") + '">' +
           '<input type="checkbox"' + (item.checked ? " checked" : "") +
           ' data-base="' + item.base + '">' +
           "<span>" + item.display + dupLabel + "</span>" +
-          '<small class="grocery-meals">' + item.meals.join(", ") + "</small></label>";
-        idx++;
+          '<small class="grocery-meals">' + dayTags + " " + item.meals.join(", ") + "</small></label>";
       });
       html += "</div>";
     });
@@ -390,28 +423,27 @@ const App = {
       '<button class="btn btn-sm btn-primary" id="print-btn">Print List</button></div>';
 
     el.innerHTML = html;
-    this.groceryListeners(el, items, groceryDate, info, tomorrowDate);
+    this.groceryListeners(el, items, today);
   },
 
-  groceryListeners(el, items, groceryDate, info, tomorrowDate) {
-    // Generate tomorrow's list
-    const genBtn = document.getElementById("gen-tomorrow-btn");
-    if (genBtn) {
-      genBtn.addEventListener("click", () => {
-        let plan = this.getPlan(tomorrowDate);
-        if (!plan) {
-          plan = this.generatePlan(info.target);
-          this.savePlan(tomorrowDate, plan);
-        }
-        localStorage.setItem("grocery_active_date", tomorrowDate);
+  groceryListeners(el, items, today) {
+    const target = this.getTarget();
+    const tomorrowDate = this.tomorrowKey();
+    const checkKey = "grocery_checked_2day_" + today;
+
+    // Generate today's plan
+    const genTodayBtn = document.getElementById("gen-today-btn");
+    if (genTodayBtn) {
+      genTodayBtn.addEventListener("click", () => {
+        this.savePlan(today, this.generatePlan(target));
         this.renderGrocery();
       });
     }
-    // Show today's list
-    const todayBtn = document.getElementById("show-today-btn");
-    if (todayBtn) {
-      todayBtn.addEventListener("click", () => {
-        localStorage.setItem("grocery_active_date", this.date);
+    // Generate tomorrow's plan
+    const genBtn = document.getElementById("gen-tomorrow-btn");
+    if (genBtn) {
+      genBtn.addEventListener("click", () => {
+        this.savePlan(tomorrowDate, this.generatePlan(target));
         this.renderGrocery();
       });
     }
@@ -424,7 +456,7 @@ const App = {
           if (item) item.checked = cb.checked;
           const state = {};
           items.forEach(i => { if (i.checked) state[i.base] = true; });
-          localStorage.setItem("grocery_checked_" + groceryDate, JSON.stringify(state));
+          localStorage.setItem(checkKey, JSON.stringify(state));
           this.renderGrocery();
         });
       });
@@ -433,7 +465,7 @@ const App = {
     const uncheckBtn = document.getElementById("uncheck-all-btn");
     if (uncheckBtn) {
       uncheckBtn.addEventListener("click", () => {
-        localStorage.removeItem("grocery_checked_" + groceryDate);
+        localStorage.removeItem(checkKey);
         this.renderGrocery();
       });
     }
@@ -448,6 +480,7 @@ const App = {
   renderProgress() {
     const el = document.getElementById("progress-content");
     const info = calcDailyCalories();
+    const target = this.getTarget();
     const weights = JSON.parse(localStorage.getItem("weight_log") || "[]");
     const latest = weights.length ? weights[weights.length - 1] : null;
     const currentKg = latest ? latest.kg : info.profile.currentKg;
@@ -509,8 +542,8 @@ const App = {
       const eaten = this.getEaten(key);
       const cals = Object.values(eaten).reduce((s, m) => s + m.calories, 0);
       if (cals === 0 && i > 6) continue; // skip empty old days
-      const pct = info.target > 0 ? Math.min(120, (cals / info.target) * 100) : 0;
-      const over = cals > info.target;
+      const pct = target > 0 ? Math.min(120, (cals / target) * 100) : 0;
+      const over = cals > target;
       const dayName = d.toLocaleDateString("en-US", { weekday: "short" });
       html += '<div class="cal-row"><span class="label">' + dayName + '</span>' +
         '<div class="track"><div class="fill ' + (over ? "over" : "good") +
@@ -532,11 +565,11 @@ const App = {
     if (mealDays.length) {
       mealDays.forEach(day => {
         const dayCals = day.meals.reduce((s, m) => s + m[1].calories, 0);
-        const over = dayCals > info.target;
+        const over = dayCals > target;
         const dayLabel = new Date(day.date + "T12:00:00").toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
         html += '<div class="meal-log-day">' +
           '<div class="meal-log-header"><span>' + dayLabel + '</span>' +
-          '<span class="' + (over ? "text-red" : "text-green") + '">' + dayCals + ' / ' + info.target + ' cal</span></div>';
+          '<span class="' + (over ? "text-red" : "text-green") + '">' + dayCals + ' / ' + target + ' cal</span></div>';
         day.meals.forEach(([slot, m]) => {
           html += '<div class="meal-log-item"><span class="meal-log-slot">' + slot + '</span>' +
             '<span>' + m.name + '</span><span class="meal-log-cal">' + m.calories + '</span></div>';
@@ -555,7 +588,7 @@ const App = {
     html += '<div class="section"><h2>Your Numbers</h2><div class="info-grid">' +
       "<div>BMR: " + info.bmr + " cal</div>" +
       "<div>TDEE: " + info.tdee + " cal</div>" +
-      "<div>Daily Target: " + info.target + " cal</div>" +
+      "<div>Daily Target: " + target + " cal</div>" +
       "<div>Rate: " + info.kgPerWeek + " kg/week</div>" +
       "</div></div>";
 
