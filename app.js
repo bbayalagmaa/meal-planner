@@ -29,6 +29,16 @@ const App = {
       const val = parseInt(input.value);
       if (val && val >= 500 && val <= 5000) {
         localStorage.setItem("custom_calorie_target", val);
+        // Regenerate today's plan to fit new target
+        const today = new Date().toISOString().split("T")[0];
+        if (this.getPlan(today)) {
+          this.savePlan(today, this.generatePlan(val));
+        }
+        // Also regenerate tomorrow if it exists
+        const tomorrow = this.tomorrowKey();
+        if (this.getPlan(tomorrow)) {
+          this.savePlan(tomorrow, this.generatePlan(val));
+        }
         this.renderMeals();
       }
     };
@@ -354,18 +364,27 @@ const App = {
     const tomorrowPlan = this.getPlan(tomorrowDate);
     const target = this.getTarget();
 
+    // Status indicators
+    let html = '<div class="grocery-status">' +
+      '<span class="status-item' + (todayPlan ? " active" : "") + '">Today: ' + (todayPlan ? "✓" : "—") + '</span>' +
+      '<span class="status-item' + (tomorrowPlan ? " active" : "") + '">Tomorrow: ' + (tomorrowPlan ? "✓" : "—") + '</span>' +
+      '</div>';
+
     // Header with generate buttons
-    let html = '<div class="grocery-header">';
+    html += '<div class="grocery-header">';
+    if (!todayPlan || !tomorrowPlan) {
+      html += '<button class="btn btn-primary btn-sm" id="gen-both-btn">Generate Both Days</button>';
+    }
     if (!todayPlan) {
-      html += '<button class="btn btn-primary btn-sm" id="gen-today-btn">Generate Today</button>';
+      html += '<button class="btn btn-outline btn-sm" id="gen-today-btn">Today Only</button>';
     }
     if (!tomorrowPlan) {
-      html += '<button class="btn btn-primary btn-sm" id="gen-tomorrow-btn">Generate Tomorrow</button>';
+      html += '<button class="btn btn-outline btn-sm" id="gen-tomorrow-btn">Tomorrow Only</button>';
     }
     html += "</div>";
 
     if (!todayPlan && !tomorrowPlan) {
-      html += '<p class="empty">No meal plans yet. Generate today\'s or tomorrow\'s plan to see your shopping list.</p>';
+      html += '<p class="empty">No meal plans yet. Generate plans to see your shopping list.</p>';
       el.innerHTML = html;
       this.groceryListeners(el, null, today);
       return;
@@ -431,6 +450,15 @@ const App = {
     const tomorrowDate = this.tomorrowKey();
     const checkKey = "grocery_checked_2day_" + today;
 
+    // Generate both days
+    const genBothBtn = document.getElementById("gen-both-btn");
+    if (genBothBtn) {
+      genBothBtn.addEventListener("click", () => {
+        if (!this.getPlan(today)) this.savePlan(today, this.generatePlan(target));
+        if (!this.getPlan(tomorrowDate)) this.savePlan(tomorrowDate, this.generatePlan(target));
+        this.renderGrocery();
+      });
+    }
     // Generate today's plan
     const genTodayBtn = document.getElementById("gen-today-btn");
     if (genTodayBtn) {
@@ -592,6 +620,11 @@ const App = {
       "<div>Rate: " + info.kgPerWeek + " kg/week</div>" +
       "</div></div>";
 
+    // --- Reset all data ---
+    html += '<div class="section danger-section"><h2>Reset Data</h2>' +
+      '<p class="reset-info">This will delete all meal plans, weight logs, favorites, and settings.</p>' +
+      '<button class="btn btn-danger" id="reset-all-btn">Reset All Data</button></div>';
+
     el.innerHTML = html;
 
     // --- Event: log weight ---
@@ -604,6 +637,14 @@ const App = {
       weights.sort((a, b) => a.date.localeCompare(b.date));
       localStorage.setItem("weight_log", JSON.stringify(weights));
       this.renderProgress();
+    });
+
+    // --- Event: reset all data ---
+    document.getElementById("reset-all-btn").addEventListener("click", () => {
+      if (confirm("Are you sure? This will delete ALL your data and cannot be undone.")) {
+        localStorage.clear();
+        location.reload();
+      }
     });
 
     // --- Draw weight chart ---
