@@ -169,7 +169,7 @@ const App = {
       '<span class="' + (planCals <= target ? "under" : "over") + '">' + underOver + '</span></div>' +
       '<div class="bar-track"><div class="bar-fill' + (pct > 100 ? " over" : "") +
       '" style="width:' + pct + '%"></div></div>' +
-      '<div class="macro-row">P: ' + planProtein + 'g | C: ' + planCarbs + 'g | F: ' + planFat + 'g</div></div>';
+      '<div class="macro-row"><span>🥩 ' + planProtein + 'g protein</span><span>🍞 ' + planCarbs + 'g carbs</span><span>🥑 ' + planFat + 'g fat</span></div></div>';
 
     const slotLabels = { breakfast: "Breakfast", lunch: "Lunch", dinner: "Dinner", snack1: "Snack 1", snack2: "Snack 2" };
     const maxTime = this.cookTimeFilter === "all" ? Infinity : parseInt(this.cookTimeFilter);
@@ -544,7 +544,7 @@ const App = {
       "</div></div></div>";
 
     // --- Weight input ---
-    html += '<div class="section"><h2>Log Today\'s Weight</h2>' +
+    html += '<div class="section"><h2>⚖️ Log Today\'s Weight</h2>' +
       '<div class="input-row">' +
       '<input type="number" id="weight-in" placeholder="e.g. 76.5" step="0.1" min="30" max="200">' +
       '<button class="btn btn-primary" id="log-w-btn">Log</button></div>';
@@ -554,7 +554,7 @@ const App = {
     html += "</div>";
 
     // --- Weight chart (canvas) ---
-    html += '<div class="section"><h2>Weight Over Time</h2>';
+    html += '<div class="section"><h2>📈 Weight Over Time</h2>';
     if (weights.length >= 2) {
       html += '<canvas id="weight-chart" width="460" height="200"></canvas>';
     } else {
@@ -563,7 +563,7 @@ const App = {
     html += "</div>";
 
     // --- Calorie history (14 days) ---
-    html += '<div class="section"><h2>Calorie History</h2><div class="cal-bars">';
+    html += '<div class="section"><h2>🔥 Calorie History</h2><div class="cal-bars">';
     for (let i = 13; i >= 0; i--) {
       const d = new Date(); d.setDate(d.getDate() - i);
       const key = d.toISOString().split("T")[0];
@@ -581,7 +581,7 @@ const App = {
     html += "</div></div>";
 
     // --- Meals eaten log ---
-    html += '<div class="section"><h2>Recent Meals Eaten</h2>';
+    html += '<div class="section"><h2>🍽️ Recent Meals Eaten</h2>';
     const mealDays = [];
     for (let i = 0; i < 7; i++) {
       const d = new Date(); d.setDate(d.getDate() - i);
@@ -613,7 +613,7 @@ const App = {
     if (info.warning) {
       html += '<div class="warning">' + info.warning + "</div>";
     }
-    html += '<div class="section"><h2>Your Numbers</h2><div class="info-grid">' +
+    html += '<div class="section"><h2>📊 Your Numbers</h2><div class="info-grid">' +
       "<div>BMR: " + info.bmr + " cal</div>" +
       "<div>TDEE: " + info.tdee + " cal</div>" +
       "<div>Daily Target: " + target + " cal</div>" +
@@ -621,7 +621,7 @@ const App = {
       "</div></div>";
 
     // --- Reset all data ---
-    html += '<div class="section danger-section"><h2>Reset Data</h2>' +
+    html += '<div class="section danger-section"><h2>⚠️ Reset Data</h2>' +
       '<p class="reset-info">This will delete all meal plans, weight logs, favorites, and settings.</p>' +
       '<button class="btn btn-danger" id="reset-all-btn">Reset All Data</button></div>';
 
