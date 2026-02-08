@@ -14,12 +14,112 @@ const App = {
   },
 
   init() {
+    if (!hasProfile()) {
+      this.showProfileSetup();
+      return;
+    }
     this.setupCalorieInput();
     this.setupThemeToggle();
     this.setupTabs();
     this.setupDateNav();
     this.setupSearch();
     this.renderMeals();
+  },
+
+  // --- Profile setup / edit ---
+  showProfileSetup(editing) {
+    const profile = getProfile() || {};
+    const container = document.getElementById("profile-setup");
+    container.innerHTML =
+      '<div class="profile-form">' +
+        '<h2>' + (editing ? "Edit Profile" : "Welcome! Set Up Your Profile") + '</h2>' +
+        '<p class="profile-sub">' + (editing ? "Update your info and goals." : "Enter your info so the app can calculate your daily calorie target.") + '</p>' +
+        '<div class="form-group">' +
+          '<label>Gender</label>' +
+          '<select id="p-gender">' +
+            '<option value="female"' + (profile.gender === "female" ? " selected" : "") + '>Female</option>' +
+            '<option value="male"' + (profile.gender === "male" ? " selected" : "") + '>Male</option>' +
+          '</select>' +
+        '</div>' +
+        '<div class="form-row">' +
+          '<div class="form-group"><label>Age</label>' +
+            '<input type="number" id="p-age" min="10" max="99" value="' + (profile.age || "") + '" placeholder="e.g. 24"></div>' +
+          '<div class="form-group"><label>Height (cm)</label>' +
+            '<input type="number" id="p-height" min="100" max="250" value="' + (profile.heightCm || "") + '" placeholder="e.g. 165"></div>' +
+        '</div>' +
+        '<div class="form-row">' +
+          '<div class="form-group"><label>Current Weight (kg)</label>' +
+            '<input type="number" id="p-current" min="30" max="300" step="0.1" value="' + (profile.currentKg || "") + '" placeholder="e.g. 78"></div>' +
+          '<div class="form-group"><label>Goal Weight (kg)</label>' +
+            '<input type="number" id="p-goal" min="30" max="300" step="0.1" value="' + (profile.goalKg || "") + '" placeholder="e.g. 58"></div>' +
+        '</div>' +
+        '<div class="form-row">' +
+          '<div class="form-group"><label>Timeline (months)</label>' +
+            '<input type="number" id="p-months" min="1" max="24" value="' + (profile.months || "") + '" placeholder="e.g. 5"></div>' +
+          '<div class="form-group"><label>Activity Level</label>' +
+            '<select id="p-activity">' +
+              '<option value="sedentary"' + (profile.activity === "sedentary" ? " selected" : "") + '>Sedentary</option>' +
+              '<option value="light"' + (profile.activity === "light" ? " selected" : "") + '>Light (1-3x/week)</option>' +
+              '<option value="moderate"' + (profile.activity === "moderate" ? " selected" : "") + '>Moderate (3-5x/week)</option>' +
+              '<option value="active"' + (profile.activity === "active" ? " selected" : "") + '>Active (6-7x/week)</option>' +
+            '</select>' +
+          '</div>' +
+        '</div>' +
+        '<div id="p-error" class="form-error"></div>' +
+        '<button class="btn btn-primary" id="p-save-btn">' + (editing ? "Save Changes" : "Start Planning") + '</button>' +
+        (editing ? '<button class="btn btn-outline" id="p-cancel-btn">Cancel</button>' : '') +
+      '</div>';
+
+    container.style.display = "block";
+    if (editing) {
+      document.querySelector(".header").style.display = "none";
+      document.querySelector(".tab-bar").style.display = "none";
+      document.querySelectorAll(".tab-content").forEach(t => t.style.display = "none");
+    }
+
+    document.getElementById("p-save-btn").addEventListener("click", () => {
+      const age = parseInt(document.getElementById("p-age").value);
+      const heightCm = parseInt(document.getElementById("p-height").value);
+      const currentKg = parseFloat(document.getElementById("p-current").value);
+      const goalKg = parseFloat(document.getElementById("p-goal").value);
+      const months = parseInt(document.getElementById("p-months").value);
+      const gender = document.getElementById("p-gender").value;
+      const activity = document.getElementById("p-activity").value;
+      const errEl = document.getElementById("p-error");
+
+      if (!age || !heightCm || !currentKg || !goalKg || !months) {
+        errEl.textContent = "Please fill in all fields.";
+        return;
+      }
+      if (age < 10 || age > 99) { errEl.textContent = "Age must be 10-99."; return; }
+      if (heightCm < 100 || heightCm > 250) { errEl.textContent = "Height must be 100-250 cm."; return; }
+      if (currentKg < 30 || goalKg < 30) { errEl.textContent = "Weight must be at least 30 kg."; return; }
+      if (months < 1 || months > 24) { errEl.textContent = "Timeline must be 1-24 months."; return; }
+
+      saveProfile({ age, gender, heightCm, currentKg, goalKg, months, activity });
+      container.style.display = "none";
+      container.innerHTML = "";
+      document.querySelector(".header").style.display = "";
+      document.querySelector(".tab-bar").style.display = "";
+      document.querySelectorAll(".tab-content").forEach(t => t.style.display = "");
+      // Re-init the full app
+      this.setupCalorieInput();
+      this.setupThemeToggle();
+      this.setupTabs();
+      this.setupDateNav();
+      this.setupSearch();
+      this.renderMeals();
+    });
+
+    if (editing) {
+      document.getElementById("p-cancel-btn").addEventListener("click", () => {
+        container.style.display = "none";
+        container.innerHTML = "";
+        document.querySelector(".header").style.display = "";
+        document.querySelector(".tab-bar").style.display = "";
+        document.querySelectorAll(".tab-content").forEach(t => t.style.display = "");
+      });
+    }
   },
 
   setupCalorieInput() {
@@ -727,7 +827,7 @@ const App = {
       "<div>TDEE: " + info.tdee + " cal</div>" +
       "<div>Daily Target: " + target + " cal</div>" +
       "<div>Rate: " + info.kgPerWeek + " kg/week</div>" +
-      "</div></div>";
+      '</div><button class="btn btn-sm btn-outline" id="edit-profile-btn" style="margin-top:12px;width:100%">Edit Profile</button></div>';
 
     // --- Reset all data ---
     html += '<div class="section danger-section"><h2>⚠️ Reset Data</h2>' +
@@ -746,6 +846,11 @@ const App = {
       weights.sort((a, b) => a.date.localeCompare(b.date));
       localStorage.setItem("weight_log", JSON.stringify(weights));
       this.renderProgress();
+    });
+
+    // --- Event: edit profile ---
+    document.getElementById("edit-profile-btn").addEventListener("click", () => {
+      this.showProfileSetup(true);
     });
 
     // --- Event: reset all data ---
