@@ -18,6 +18,7 @@ const App = {
     this.setupThemeToggle();
     this.setupTabs();
     this.setupDateNav();
+    this.setupSearch();
     this.renderMeals();
   },
 
@@ -250,6 +251,40 @@ const App = {
       this.deletePlan(this.date);
       this.renderMeals();
     });
+  },
+
+  // --- Recipe search ---
+  setupSearch() {
+    const input = document.getElementById("recipe-search");
+    input.addEventListener("input", () => this.renderSearch(input.value));
+  },
+
+  renderSearch(query) {
+    const el = document.getElementById("search-results");
+    if (!query || !query.trim()) {
+      el.innerHTML = "";
+      return;
+    }
+    const results = searchRecipes(query);
+    if (!results.length) {
+      el.innerHTML = '<div class="search-empty">No recipes found for "' + query + '"</div>';
+      return;
+    }
+    el.innerHTML = results.map(r =>
+      '<div class="search-result-card">' +
+        '<div class="search-result-info">' +
+          '<h4>' + r.name + '</h4>' +
+          '<div class="search-result-meta">' +
+            '<span>' + r.calories + ' cal</span>' +
+            '<span>P: ' + r.protein + 'g</span>' +
+            '<span>C: ' + r.carbs + 'g</span>' +
+            '<span>F: ' + r.fat + 'g</span>' +
+            '<span>' + r.cookTime + ' min</span>' +
+          '</div>' +
+        '</div>' +
+        '<span class="search-cat-tag">' + r.category + '</span>' +
+      '</div>'
+    ).join("");
   },
 
   generatePlan(calorieTarget) {
