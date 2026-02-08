@@ -694,11 +694,14 @@ const App = {
     const target = this.getTarget();
     const weights = JSON.parse(localStorage.getItem("weight_log") || "[]");
     const latest = weights.length ? weights[weights.length - 1] : null;
+    const first = weights.length ? weights[0] : null;
+    const startKg = first ? first.kg : info.profile.currentKg;
     const currentKg = latest ? latest.kg : info.profile.currentKg;
-    const totalToLose = info.profile.currentKg - info.profile.goalKg;
-    const lost = Math.round((info.profile.currentKg - currentKg) * 10) / 10;
+    const totalToLose = startKg - info.profile.goalKg;
+    const hasWeightData = weights.length >= 1;
+    const lost = hasWeightData ? Math.round((startKg - currentKg) * 10) / 10 : 0;
     const remaining = Math.round((currentKg - info.profile.goalKg) * 10) / 10;
-    const goalPct = totalToLose > 0 ? Math.min(100, Math.round((lost / totalToLose) * 100)) : 0;
+    const goalPct = (hasWeightData && totalToLose > 0) ? Math.min(100, Math.round((lost / totalToLose) * 100)) : 0;
 
     let html = "";
 
@@ -720,11 +723,13 @@ const App = {
       '</svg>' +
       '<div class="goal-ring-text"><span class="goal-pct">' + goalPct + '%</span><span class="goal-sub">complete</span></div></div>' +
       '<div class="goal-stats">' +
-      '<div class="goal-stat"><span class="goal-num">' + currentKg + '</span><span class="goal-label">Current kg</span></div>' +
+      '<div class="goal-stat"><span class="goal-num">' + startKg + '</span><span class="goal-label">Start kg</span></div>' +
+      '<div class="goal-stat"><span class="goal-num">' + (hasWeightData ? currentKg : "—") + '</span><span class="goal-label">Current kg</span></div>' +
+      '<div class="goal-stat"><span class="goal-num ' + (lost > 0 ? "good" : "") + '">' + (hasWeightData ? (lost > 0 ? "-" : "") + Math.abs(lost) : "—") + '</span><span class="goal-label">Lost kg</span></div>' +
       '<div class="goal-stat"><span class="goal-num">' + info.profile.goalKg + '</span><span class="goal-label">Goal kg</span></div>' +
-      '<div class="goal-stat"><span class="goal-num ' + (lost > 0 ? "good" : "") + '">' + (lost > 0 ? "-" : "") + Math.abs(lost) + '</span><span class="goal-label">Lost kg</span></div>' +
-      '<div class="goal-stat"><span class="goal-num">' + Math.max(0, remaining) + '</span><span class="goal-label">To go</span></div>' +
-      "</div></div></div>";
+      "</div></div>" +
+      (!hasWeightData ? '<p class="empty-sm">Log your weight below to start tracking progress.</p>' : '') +
+      "</div>";
 
     // --- Weekly summary ---
     const week = this.getWeeklySummary();
