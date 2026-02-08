@@ -1035,6 +1035,79 @@ body {
   .grocery-category { padding: 12px; }
 }
 
+/* Weekly summary */
+.week-label {
+  text-align: center;
+  font-size: 13px;
+  color: var(--muted);
+  font-weight: 600;
+  margin-bottom: 14px;
+}
+.week-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+.week-stat {
+  background: var(--bg);
+  padding: 14px 10px;
+  border-radius: 12px;
+  text-align: center;
+}
+.week-num {
+  display: block;
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--primary);
+}
+.week-sub {
+  display: block;
+  font-size: 10px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-top: 4px;
+  font-weight: 600;
+}
+.week-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+.week-detail > div {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: var(--bg);
+  border-radius: 8px;
+  font-size: 13px;
+}
+.week-detail-label { color: var(--muted); font-weight: 500; }
+.week-detail-val { font-weight: 700; }
+.week-top {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  font-size: 13px;
+}
+.week-top strong { color: var(--muted); font-size: 12px; }
+.week-top-item {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(16, 185, 129, 0.05) 100%);
+  border: 1px solid var(--primary);
+  color: var(--primary);
+  padding: 4px 10px;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 12px;
+}
+.week-top-item small {
+  opacity: 0.7;
+  font-weight: 500;
+}
+
 /* Print styles */
 @media print {
   body { max-width: 100%; background: white; color: #1a1a1a; }
