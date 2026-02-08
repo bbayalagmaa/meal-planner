@@ -694,9 +694,8 @@ const App = {
     const target = this.getTarget();
     const weights = JSON.parse(localStorage.getItem("weight_log") || "[]");
     const latest = weights.length ? weights[weights.length - 1] : null;
-    const first = weights.length ? weights[0] : null;
-    const startKg = first ? first.kg : info.profile.currentKg;
-    const currentKg = latest ? latest.kg : info.profile.currentKg;
+    const startKg = info.profile.currentKg;
+    const currentKg = latest ? latest.kg : startKg;
     const totalToLose = startKg - info.profile.goalKg;
     const hasWeightData = weights.length >= 1;
     const lost = hasWeightData ? Math.round((startKg - currentKg) * 10) / 10 : 0;
