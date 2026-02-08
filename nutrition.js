@@ -1,10 +1,24 @@
-// Calorie calculator for weight loss
-// Profile: Female, 24, 78kg -> 55kg, 5 months, moderate activity (gym Mon-Sat)
+// Calorie calculator for weight management
+// Profile is loaded from localStorage — set by user in profile setup
+
+function getProfile() {
+  return JSON.parse(localStorage.getItem("profile") || "null");
+}
+
+function hasProfile() {
+  return !!getProfile();
+}
+
+function saveProfile(profile) {
+  localStorage.setItem("profile", JSON.stringify(profile));
+  // Clear custom calorie target so it recalculates from new profile
+  localStorage.removeItem("custom_calorie_target");
+}
 
 function calcDailyCalories() {
-  const profile = JSON.parse(localStorage.getItem("profile") || "null") || {
-    age: 24, gender: "female", heightCm: 165,
-    currentKg: 78, goalKg: 55, months: 5, activity: "moderate"
+  const profile = getProfile() || {
+    age: 25, gender: "female", heightCm: 165,
+    currentKg: 70, goalKg: 60, months: 5, activity: "moderate"
   };
 
   // Mifflin-St Jeor BMR
@@ -22,13 +36,14 @@ function calcDailyCalories() {
   // Deficit calculation
   const kgToLose = profile.currentKg - profile.goalKg;
   const days = profile.months * 30;
-  const dailyDeficit = Math.round((kgToLose * 7700) / days); // 7700 cal per kg fat
+  const dailyDeficit = days > 0 ? Math.round((kgToLose * 7700) / days) : 0;
   let target = tdee - dailyDeficit;
 
-  // Safety: never below 1200 cal for women
-  if (target < 1200) target = 1200;
+  // Safety: minimum calories
+  const minCal = profile.gender === "female" ? 1200 : 1500;
+  if (target < minCal) target = minCal;
 
-  const kgPerWeek = Math.round(((kgToLose / days) * 7) * 10) / 10;
+  const kgPerWeek = days > 0 ? Math.round(((kgToLose / days) * 7) * 10) / 10 : 0;
 
   return {
     bmr: Math.round(bmr),
