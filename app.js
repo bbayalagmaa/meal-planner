@@ -539,6 +539,54 @@ const App = {
     }
   },
 
+  // === WEEKLY SUMMARY ===
+  getWeeklySummary() {
+    const today = new Date();
+    const dayOfWeek = today.getDay(); // 0=Sun
+    const mondayOffset = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+    const monday = new Date(today);
+    monday.setDate(today.getDate() - mondayOffset);
+
+    let totalCals = 0, totalProtein = 0, totalCarbs = 0, totalFat = 0;
+    let daysWithData = 0;
+    const mealCounts = {};
+
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(monday);
+      d.setDate(monday.getDate() + i);
+      if (d > today) break;
+      const key = d.toISOString().split("T")[0];
+      const eaten = this.getEaten(key);
+      const meals = Object.values(eaten);
+      if (meals.length) {
+        daysWithData++;
+        meals.forEach(m => {
+          totalCals += m.calories;
+          totalProtein += m.protein || 0;
+          totalCarbs += m.carbs || 0;
+          totalFat += m.fat || 0;
+          mealCounts[m.name] = (mealCounts[m.name] || 0) + 1;
+        });
+      }
+    }
+
+    const topMeals = Object.entries(mealCounts)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 3);
+
+    return {
+      totalCals, totalProtein, totalCarbs, totalFat,
+      daysWithData,
+      avgCals: daysWithData ? Math.round(totalCals / daysWithData) : 0,
+      avgProtein: daysWithData ? Math.round(totalProtein / daysWithData) : 0,
+      avgCarbs: daysWithData ? Math.round(totalCarbs / daysWithData) : 0,
+      avgFat: daysWithData ? Math.round(totalFat / daysWithData) : 0,
+      topMeals,
+      weekLabel: monday.toLocaleDateString("en-US", { month: "short", day: "numeric" }) +
+        " - " + today.toLocaleDateString("en-US", { month: "short", day: "numeric" })
+    };
+  },
+
   // === TRACK PROGRESS ===
   renderProgress() {
     const el = document.getElementById("progress-content");
@@ -577,6 +625,32 @@ const App = {
       '<div class="goal-stat"><span class="goal-num ' + (lost > 0 ? "good" : "") + '">' + (lost > 0 ? "-" : "") + Math.abs(lost) + '</span><span class="goal-label">Lost kg</span></div>' +
       '<div class="goal-stat"><span class="goal-num">' + Math.max(0, remaining) + '</span><span class="goal-label">To go</span></div>' +
       "</div></div></div>";
+
+    // --- Weekly summary ---
+    const week = this.getWeeklySummary();
+    html += '<div class="section"><h2>📅 This Week</h2>' +
+      '<div class="week-label">' + week.weekLabel + '</div>' +
+      '<div class="week-stats">' +
+        '<div class="week-stat"><span class="week-num">' + week.avgCals + '</span><span class="week-sub">Avg cal/day</span></div>' +
+        '<div class="week-stat"><span class="week-num">' + week.avgProtein + 'g</span><span class="week-sub">Avg protein</span></div>' +
+        '<div class="week-stat"><span class="week-num">' + week.avgCarbs + 'g</span><span class="week-sub">Avg carbs</span></div>' +
+        '<div class="week-stat"><span class="week-num">' + week.avgFat + 'g</span><span class="week-sub">Avg fat</span></div>' +
+      '</div>' +
+      '<div class="week-detail">' +
+        '<div><span class="week-detail-label">Days tracked</span><span class="week-detail-val">' + week.daysWithData + ' / 7</span></div>' +
+        '<div><span class="week-detail-label">Total calories</span><span class="week-detail-val">' + week.totalCals + '</span></div>' +
+      '</div>';
+    if (week.topMeals.length) {
+      html += '<div class="week-top"><strong>Most eaten:</strong>';
+      week.topMeals.forEach(([name, count]) => {
+        html += '<span class="week-top-item">' + name + ' <small>x' + count + '</small></span>';
+      });
+      html += '</div>';
+    }
+    if (!week.daysWithData) {
+      html += '<p class="empty-sm">No meals tracked this week yet.</p>';
+    }
+    html += '</div>';
 
     // --- Weight input ---
     html += '<div class="section"><h2>⚖️ Log Today\'s Weight</h2>' +
