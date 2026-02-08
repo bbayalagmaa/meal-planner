@@ -87,3 +87,13 @@ function getRecipesByCategory(category) {
 function getRecipeById(id) {
   return RECIPES.find(r => r.id === id);
 }
+
+function searchRecipes(query) {
+  const q = query.toLowerCase().trim();
+  if (!q) return RECIPES;
+  return RECIPES.filter(r =>
+    r.name.toLowerCase().includes(q) ||
+    r.ingredients.some(i => i.toLowerCase().includes(q)) ||
+    r.category.toLowerCase().includes(q)
+  );
+}
