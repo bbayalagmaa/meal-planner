@@ -1317,6 +1317,95 @@ body {
   flex-shrink: 0;
 }
 
+/* Water tracker */
+.water-card {
+  background: linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%);
+  border: 1px solid #7dd3fc;
+  border-radius: var(--radius);
+  padding: 16px;
+  margin-bottom: 16px;
+  box-shadow: var(--shadow);
+}
+[data-theme="dark"] .water-card {
+  background: linear-gradient(135deg, #0c4a6e 0%, #075985 100%);
+  border-color: #0284c7;
+}
+.water-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+.water-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #0369a1;
+}
+[data-theme="dark"] .water-title { color: #7dd3fc; }
+.water-count {
+  font-size: 13px;
+  font-weight: 700;
+  color: #0369a1;
+  background: rgba(255,255,255,0.5);
+  padding: 4px 10px;
+  border-radius: 8px;
+}
+[data-theme="dark"] .water-count {
+  color: #bae6fd;
+  background: rgba(0,0,0,0.2);
+}
+.water-drops {
+  display: flex;
+  gap: 4px;
+  justify-content: center;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+}
+.water-drop {
+  font-size: 18px;
+  opacity: 0.25;
+  transition: var(--transition);
+}
+.water-drop.filled {
+  opacity: 1;
+  transform: scale(1.1);
+}
+.water-bar-track {
+  height: 8px;
+  background: rgba(255,255,255,0.4);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 10px;
+}
+[data-theme="dark"] .water-bar-track { background: rgba(0,0,0,0.2); }
+.water-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #38bdf8 0%, #0284c7 100%);
+  border-radius: 4px;
+  transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.water-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+}
+.water-done {
+  text-align: center;
+  font-size: 12px;
+  font-weight: 700;
+  color: #0369a1;
+  margin-top: 8px;
+}
+[data-theme="dark"] .water-done { color: #7dd3fc; }
+.text-blue { color: #0284c7; font-weight: 600; }
+[data-theme="dark"] .text-blue { color: #38bdf8; }
+.cal-row .fill.water-met {
+  background: linear-gradient(90deg, #38bdf8 0%, #0284c7 100%);
+}
+.cal-row .fill.water-low {
+  background: linear-gradient(90deg, #bae6fd 0%, #7dd3fc 100%);
+}
+
 /* Print styles */
 @media print {
   body { max-width: 100%; background: white; color: #1a1a1a; }

@@ -162,6 +162,49 @@ const App = {
     });
   },
 
+  // --- Water tracker ---
+  waterGoal: 8,
+
+  getWater(date) {
+    return parseInt(localStorage.getItem("water_" + date) || "0");
+  },
+  setWater(date, glasses) {
+    localStorage.setItem("water_" + date, Math.max(0, glasses));
+  },
+
+  renderWaterTracker() {
+    const el = document.getElementById("water-tracker");
+    const glasses = this.getWater(this.date);
+    const pct = Math.min(100, Math.round((glasses / this.waterGoal) * 100));
+    const filled = Math.min(glasses, this.waterGoal);
+    const drops = [];
+    for (let i = 0; i < this.waterGoal; i++) {
+      drops.push('<span class="water-drop' + (i < filled ? ' filled' : '') + '">💧</span>');
+    }
+    el.innerHTML =
+      '<div class="water-card">' +
+        '<div class="water-header">' +
+          '<span class="water-title">💧 Water</span>' +
+          '<span class="water-count">' + glasses + ' / ' + this.waterGoal + ' glasses</span>' +
+        '</div>' +
+        '<div class="water-drops">' + drops.join('') + '</div>' +
+        '<div class="water-bar-track"><div class="water-bar-fill" style="width:' + pct + '%"></div></div>' +
+        '<div class="water-actions">' +
+          '<button class="btn btn-sm btn-outline" id="water-minus">-</button>' +
+          '<button class="btn btn-sm btn-primary" id="water-plus">+ Add Glass</button>' +
+        '</div>' +
+        (glasses >= this.waterGoal ? '<div class="water-done">Goal reached!</div>' : '') +
+      '</div>';
+    document.getElementById("water-plus").addEventListener("click", () => {
+      this.setWater(this.date, glasses + 1);
+      this.renderWaterTracker();
+    });
+    document.getElementById("water-minus").addEventListener("click", () => {
+      this.setWater(this.date, glasses - 1);
+      this.renderWaterTracker();
+    });
+  },
+
   // --- Favorites ---
   getFavorites() {
     return JSON.parse(localStorage.getItem("favorites") || "[]");
@@ -219,6 +262,7 @@ const App = {
 
   // === TODAY'S MEALS ===
   renderMeals() {
+    this.renderWaterTracker();
     const el = document.getElementById("meals-content");
     const plan = this.getPlan(this.date);
     const target = this.getTarget();
@@ -883,6 +927,22 @@ const App = {
         '<div class="track"><div class="fill ' + (over ? "over" : "good") +
         '" style="width:' + Math.min(100, pct) + '%"></div></div>' +
         '<span class="val ' + (cals > 0 ? (over ? "text-red" : "text-green") : "") + '">' + (cals || "-") + "</span></div>";
+    }
+    html += "</div></div>";
+
+    // --- Water history (7 days) ---
+    html += '<div class="section"><h2>💧 Water History</h2><div class="cal-bars">';
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date(); d.setDate(d.getDate() - i);
+      const key = d.toISOString().split("T")[0];
+      const glasses = this.getWater(key);
+      const pct = this.waterGoal > 0 ? Math.min(120, (glasses / this.waterGoal) * 100) : 0;
+      const met = glasses >= this.waterGoal;
+      const dayName = d.toLocaleDateString("en-US", { weekday: "short" });
+      html += '<div class="cal-row"><span class="label">' + dayName + '</span>' +
+        '<div class="track"><div class="fill ' + (met ? "water-met" : "water-low") +
+        '" style="width:' + Math.min(100, pct) + '%"></div></div>' +
+        '<span class="val ' + (glasses > 0 ? (met ? "text-blue" : "") : "") + '">' + (glasses || "-") + "</span></div>";
     }
     html += "</div></div>";
 
