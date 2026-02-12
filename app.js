@@ -357,6 +357,7 @@ const App = {
   setupSearch() {
     const input = document.getElementById("recipe-search");
     input.addEventListener("input", () => this.renderSearch(input.value));
+    document.getElementById("add-recipe-btn").addEventListener("click", () => this.showAddRecipeForm());
   },
 
   renderSearch(query) {
@@ -373,7 +374,7 @@ const App = {
     el.innerHTML = results.map(r =>
       '<div class="search-result-card">' +
         '<div class="search-result-info">' +
-          '<h4>' + r.name + '</h4>' +
+          '<h4>' + r.name + (r.custom ? ' <span class="custom-badge">Custom</span>' : '') + '</h4>' +
           '<div class="search-result-meta">' +
             '<span>' + r.calories + ' cal</span>' +
             '<span>P: ' + r.protein + 'g</span>' +
@@ -382,9 +383,101 @@ const App = {
             '<span>' + r.cookTime + ' min</span>' +
           '</div>' +
         '</div>' +
-        '<span class="search-cat-tag">' + r.category + '</span>' +
+        '<div class="search-result-actions">' +
+          '<span class="search-cat-tag">' + r.category + '</span>' +
+          (r.custom ? '<button class="btn btn-sm btn-danger custom-del-btn" data-id="' + r.id + '">Delete</button>' : '') +
+        '</div>' +
       '</div>'
     ).join("");
+    // Delete custom recipe
+    el.querySelectorAll(".custom-del-btn").forEach(btn => {
+      btn.addEventListener("click", () => {
+        deleteCustomRecipe(parseInt(btn.dataset.id));
+        this.renderSearch(query);
+      });
+    });
+  },
+
+  // --- Custom recipe form ---
+  showAddRecipeForm() {
+    const el = document.getElementById("custom-recipe-section");
+    el.innerHTML =
+      '<div class="custom-recipe-form">' +
+        '<h3>Add Custom Recipe</h3>' +
+        '<div class="form-group"><label>Name</label>' +
+          '<input type="text" id="cr-name" placeholder="e.g. Chicken Wrap"></div>' +
+        '<div class="form-group"><label>Category</label>' +
+          '<select id="cr-category">' +
+            '<option value="breakfast">Breakfast</option>' +
+            '<option value="lunch">Lunch</option>' +
+            '<option value="dinner">Dinner</option>' +
+            '<option value="snack">Snack</option>' +
+          '</select></div>' +
+        '<div class="form-row">' +
+          '<div class="form-group"><label>Calories</label>' +
+            '<input type="number" id="cr-cal" min="1" max="2000" placeholder="350"></div>' +
+          '<div class="form-group"><label>Cook time (min)</label>' +
+            '<input type="number" id="cr-time" min="1" max="180" placeholder="15"></div>' +
+        '</div>' +
+        '<div class="form-row">' +
+          '<div class="form-group"><label>Protein (g)</label>' +
+            '<input type="number" id="cr-protein" min="0" placeholder="20"></div>' +
+          '<div class="form-group"><label>Carbs (g)</label>' +
+            '<input type="number" id="cr-carbs" min="0" placeholder="30"></div>' +
+        '</div>' +
+        '<div class="form-group"><label>Fat (g)</label>' +
+          '<input type="number" id="cr-fat" min="0" placeholder="10" style="width:calc(50% - 6px)"></div>' +
+        '<div class="form-group"><label>Ingredients (one per line)</label>' +
+          '<textarea id="cr-ingredients" rows="4" placeholder="chicken breast 150g\ntortilla 1\nlettuce 50g"></textarea></div>' +
+        '<div class="form-group"><label>Instructions</label>' +
+          '<textarea id="cr-instructions" rows="3" placeholder="Cook chicken, assemble wrap..."></textarea></div>' +
+        '<div id="cr-error" class="form-error"></div>' +
+        '<div class="meal-actions">' +
+          '<button class="btn btn-primary btn-sm" id="cr-save-btn">Save Recipe</button>' +
+          '<button class="btn btn-outline btn-sm" id="cr-cancel-btn">Cancel</button>' +
+        '</div>' +
+      '</div>';
+
+    document.getElementById("cr-save-btn").addEventListener("click", () => this.saveCustomRecipe());
+    document.getElementById("cr-cancel-btn").addEventListener("click", () => {
+      el.innerHTML = '<button class="btn btn-outline" id="add-recipe-btn">+ Add Custom Recipe</button>';
+      document.getElementById("add-recipe-btn").addEventListener("click", () => this.showAddRecipeForm());
+    });
+  },
+
+  saveCustomRecipe() {
+    const name = document.getElementById("cr-name").value.trim();
+    const category = document.getElementById("cr-category").value;
+    const calories = parseInt(document.getElementById("cr-cal").value);
+    const cookTime = parseInt(document.getElementById("cr-time").value);
+    const protein = parseInt(document.getElementById("cr-protein").value) || 0;
+    const carbs = parseInt(document.getElementById("cr-carbs").value) || 0;
+    const fat = parseInt(document.getElementById("cr-fat").value) || 0;
+    const ingredientsRaw = document.getElementById("cr-ingredients").value.trim();
+    const instructions = document.getElementById("cr-instructions").value.trim();
+    const errEl = document.getElementById("cr-error");
+
+    if (!name) { errEl.textContent = "Name is required."; return; }
+    if (!calories || calories < 1) { errEl.textContent = "Enter valid calories."; return; }
+    if (!cookTime || cookTime < 1) { errEl.textContent = "Enter cook time."; return; }
+    if (!ingredientsRaw) { errEl.textContent = "Add at least one ingredient."; return; }
+    if (!instructions) { errEl.textContent = "Add instructions."; return; }
+
+    const ingredients = ingredientsRaw.split("\n").map(s => s.trim()).filter(Boolean);
+
+    saveCustomRecipe({
+      name, category, calories, protein, carbs, fat, cookTime,
+      ingredients, instructions, custom: true
+    });
+
+    // Reset form and show button
+    const el = document.getElementById("custom-recipe-section");
+    el.innerHTML = '<button class="btn btn-outline" id="add-recipe-btn">+ Add Custom Recipe</button>';
+    document.getElementById("add-recipe-btn").addEventListener("click", () => this.showAddRecipeForm());
+
+    // Show the new recipe in search
+    document.getElementById("recipe-search").value = name;
+    this.renderSearch(name);
   },
 
   generatePlan(calorieTarget) {

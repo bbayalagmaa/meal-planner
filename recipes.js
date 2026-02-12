@@ -80,18 +80,48 @@ const RECIPES = [
   }
 ];
 
+// --- Custom recipes (localStorage) ---
+function getCustomRecipes() {
+  return JSON.parse(localStorage.getItem("custom_recipes") || "[]");
+}
+
+function saveCustomRecipe(recipe) {
+  const customs = getCustomRecipes();
+  if (recipe.id) {
+    const idx = customs.findIndex(r => r.id === recipe.id);
+    if (idx >= 0) customs[idx] = recipe;
+    else customs.push(recipe);
+  } else {
+    recipe.id = Date.now();
+    recipe.custom = true;
+    customs.push(recipe);
+  }
+  localStorage.setItem("custom_recipes", JSON.stringify(customs));
+  return recipe;
+}
+
+function deleteCustomRecipe(id) {
+  const customs = getCustomRecipes().filter(r => r.id !== id);
+  localStorage.setItem("custom_recipes", JSON.stringify(customs));
+}
+
+function getAllRecipes() {
+  return RECIPES.concat(getCustomRecipes());
+}
+
 function getRecipesByCategory(category) {
-  return RECIPES.filter(r => r.category === category);
+  return getAllRecipes().filter(r => r.category === category);
 }
 
 function getRecipeById(id) {
-  return RECIPES.find(r => r.id === id);
+  return getAllRecipes().find(r => r.id === id);
 }
 
 function searchRecipes(query) {
+  const all = getAllRecipes();
   const q = query.toLowerCase().trim();
-  if (!q) return RECIPES;
-  return RECIPES.filter(r =>
+  if (!q) return all;
+  return all.filter(r =>
     r.name.toLowerCase().includes(q) ||
     r.ingredients.some(i => i.toLowerCase().includes(q)) ||
     r.category.toLowerCase().includes(q)
